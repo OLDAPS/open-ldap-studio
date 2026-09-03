@@ -1,0 +1,32 @@
+dn: dc=example,dc=org
+objectClass: top
+objectClass: dcObject
+objectClass: organization
+dc: example
+o: Example Organisation
+description: Development fixture for Open LDAP Studio
+
+dn: ou=people,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: people
+description: Staff accounts. Large enough to page.
+
+dn: ou=groups,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: groups
+
+dn: ou=services,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: services
+description: Non-human accounts
+
+dn: ou=archive,dc=example,dc=org
+objectClass: top
+objectClass: organizationalUnit
+ou: archive
+description:: RW1wdHkgb24gcHVycG9zZSDigJQgYSBzYWZlIHRhcmdldCBmb3IgY29weSAvIG
+ 1vdmUgLyBkZWxldGU=
+

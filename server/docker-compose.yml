@@ -1,0 +1,124 @@
+# A directory to develop against.
+#
+#   docker compose up -d          OpenLDAP, seeded, on 1389 / 1636
+#   docker compose down -v        stop and discard the data
+#
+# OpenLDAP is the default rather than ApacheDS for two reasons: it is what
+# test/containers/openldap.go already runs, so the app is developed against the
+# same server its integration tests assert on, and it is the vendor the
+# wireframe's root DSE summary names. ApacheDS is here too, under a profile,
+# because it speaks X.500 prescriptiveACI — which OpenLDAP does not, and which
+# screen 2b is built for:
+#
+#   docker compose --profile apacheds up -d
+#
+# Unprivileged ports are used throughout (1389/1636 rather than 389/636) so
+# none of this needs root. Put those numbers in the connection wizard.
+
+name: open-ldap-studio-dev
+
+services:
+  # Self-signed material for StartTLS and LDAPS. It runs to completion before
+  # slapd starts and does nothing on later runs, so `up` is idempotent.
+  #
+  # The certificate is deliberately self-signed: an untrusted chain is exactly
+  # what the app's certificate-trust dialog exists to handle, and a fixture that
+  # never triggers it cannot exercise it.
+  certs:
+    image: alpine:3.20
+    container_name: ldap-certs
+    volumes:
+      - certs:/certs
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -eu
+        if [ -f /certs/ldap.crt ]; then
+          echo "certificates already present, leaving them alone"
+          exit 0
+        fi
+        apk add --no-cache openssl >/dev/null
+        openssl req -x509 -newkey rsa:2048 -nodes -days 825 \
+          -keyout /certs/ldap.key -out /certs/ldap.crt \
+          -subj "/CN=ldap.example.org/O=Example Organisation" \
+          -addext "subjectAltName=DNS:ldap.example.org,DNS:localhost,IP:127.0.0.1"
+        cp /certs/ldap.crt /certs/ca.crt
+        # slapd runs as uid 1001 in this image and must be able to read the key.
+        chown -R 1001:1001 /certs
+        chmod 640 /certs/ldap.key
+        echo "generated a self-signed certificate for localhost"
+
+  openldap:
+    # bitnamilegacy/, not bitnami/: Bitnami moved its free catalogue to the
+    # "legacy" namespace in 2025 and docker.io/bitnami/openldap no longer
+    # resolves. The legacy images are frozen but complete, and they keep the
+    # env-var contract test/containers/openldap.go is written against.
+    # Pinned rather than :latest so a rebuild months from now seeds the same
+    # directory this one did.
+    image: bitnamilegacy/openldap:2.6.10
+    container_name: ldap
+    depends_on:
+      certs:
+        condition: service_completed_successfully
+    ports:
+      - "1389:1389" # ldap:// — also the StartTLS port
+      - "1636:1636" # ldaps://
+    environment:
+      LDAP_ROOT: dc=example,dc=org
+
+      # Matches test/containers/openldap.go, so what you see in the app is what
+      # the integration tests bind as.
+      LDAP_ADMIN_USERNAME: admin
+      LDAP_ADMIN_PASSWORD: adminpassword
+
+      # cn=config is browsable, which the app's configuration screens need.
+      LDAP_CONFIG_ADMIN_ENABLED: "yes"
+      LDAP_CONFIG_ADMIN_USERNAME: configadmin
+      LDAP_CONFIG_ADMIN_PASSWORD: configpassword
+
+      # Seeding from LDIF rather than from LDAP_USERS: the fixture needs
+      # photos, DN references, auxiliary classes and awkward values that the
+      # env-var form cannot express. The files are applied in name order.
+      LDAP_SKIP_DEFAULT_TREE: "yes"
+      LDAP_CUSTOM_LDIF_DIR: /ldifs
+
+      LDAP_ENABLE_TLS: "yes"
+      LDAP_TLS_CERT_FILE: /certs/ldap.crt
+      LDAP_TLS_KEY_FILE: /certs/ldap.key
+      LDAP_TLS_CA_FILE: /certs/ca.crt
+      LDAP_LDAPS_PORT_NUMBER: "1636"
+      LDAP_PORT_NUMBER: "1389"
+    volumes:
+      - ./seed:/ldifs:ro
+      - certs:/certs:ro
+      - ldap-data:/bitnami/openldap
+    healthcheck:
+      # Proves the directory answers a search, not merely that the port is open
+      # — a slapd still importing the seed would pass a port check and fail the
+      # first thing the app asks it.
+      test:
+        - CMD-SHELL
+        - >-
+          ldapsearch -x -H ldap://127.0.0.1:1389
+          -D "cn=admin,dc=example,dc=org" -w adminpassword
+          -b "dc=example,dc=org" -s base "(objectClass=*)" dn >/dev/null 2>&1
+      interval: 5s
+      timeout: 5s
+      retries: 24
+      start_period: 20s
+
+  # X.500 access control, for screen 2b. Off unless asked for:
+  #   docker compose --profile apacheds up -d
+  apacheds:
+    image: openmicroscopy/apacheds:latest
+    container_name: apacheds
+    profiles: [apacheds]
+    ports:
+      - "10389:10389"
+    environment:
+      APACHEDS_INSTANCE: default
+
+volumes:
+  certs:
+  ldap-data:

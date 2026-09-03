@@ -1,0 +1,555 @@
+/*
+ * View primitives.
+ *
+ * shell.css owns the window chrome; this file owns what the perspectives are
+ * built from. Every class here is a named counterpart of a wireframe class, so
+ * a screen can be read against its drawing without translating geometry:
+ *
+ *   .sec   → .sidebar__section     .fld  → .field / .field--static
+ *   .pt    → .pane-tabs            .ph   → .placeholder
+ *   .grid  → .dgrid (+ --cols)     .tagx → .tag
+ *   .pad   → .pane                 .h2   → .view-title
+ *
+ * The wireframe draws unbuilt regions as a hatched box. That convention is
+ * kept rather than faked with plausible-looking chrome: a region that does not
+ * work yet says so, in place, at the size it will occupy.
+ */
+
+/* --- Perspective frame --- */
+
+.view {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane--flush {
+  padding: 0;
+  gap: 0;
+}
+
+.pane--scroll {
+  overflow: auto;
+}
+
+.split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.split__main {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.view-title {
+  margin: 0;
+  font-size: var(--text-subheading);
+  font-weight: var(--weight-semibold);
+  color: var(--text-primary);
+}
+
+.view-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+/* --- Sidebar sections --- */
+
+.sidebar__section {
+  padding: var(--space-3) var(--space-3) var(--space-1);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.sidebar__note {
+  padding: var(--space-1) var(--space-3);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+}
+
+.sidebar__card {
+  margin: var(--space-2) var(--space-3);
+}
+
+/*
+ * The right-hand inspector: entry info, dry-run results, live preview. It sits
+ * a step lighter than the working area, like the sidebar, so the eye reads the
+ * document as the thing in the middle.
+ */
+.inspector {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  min-height: 0;
+  width: var(--w-inspector);
+  background: var(--bg-panel);
+  border-left: 1px solid var(--border-subtle);
+}
+
+.inspector--wide {
+  width: 320px;
+}
+
+.inspector__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-semibold);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+.inspector__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  overflow: auto;
+  min-height: 0;
+}
+
+/* --- Sub-tabs inside a document (Attributes / LDIF view / …) --- */
+
+.pane-tabs {
+  display: flex;
+  gap: var(--space-4);
+  flex: none;
+  padding: var(--space-2) var(--space-3) 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.pane-tab {
+  padding: 0 0 var(--space-2);
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  white-space: nowrap;
+}
+
+.pane-tab:hover {
+  color: var(--text-secondary);
+}
+
+.pane-tab[data-active] {
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  box-shadow: inset 0 -2px 0 var(--accent);
+}
+
+/* --- Data grid ---
+ *
+ * A table element cannot hold a virtualised body without lying about its row
+ * heights, and every grid in this application is paged or virtualised. So the
+ * grid is CSS grid, driven by one --cols track list per grid, exactly as the
+ * wireframe draws it.
+ */
+
+.dgrid {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: auto;
+  border: 1px solid var(--border-subtle);
+}
+
+.dgrid--flush {
+  border: 0;
+}
+
+.dgrid__head,
+.dgrid__row {
+  display: grid;
+  grid-template-columns: var(--cols);
+}
+
+.dgrid__head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dgrid__head > * {
+  padding: var(--space-1) var(--space-3);
+  background: var(--bg-panel);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  text-align: left;
+  min-width: 0;
+}
+
+.dgrid__row > * {
+  padding: var(--space-1) var(--space-3);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  font-size: var(--text-caption);
+  min-height: var(--row-height);
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.dgrid__row:hover > * {
+  background: var(--bg-hover);
+}
+
+.dgrid__row[data-selected] > * {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+}
+
+/* Rows the server did not return, or that a preference hides, stay legible as
+   absences rather than being deleted from the grid. */
+.dgrid__row[data-muted] > * {
+  color: var(--text-tertiary);
+}
+
+/* --- Fields ---
+ *
+ * The wireframe's dashed slabs are two different things once they are real: an
+ * input the user types into, and a fact the view is showing them. They must
+ * not look identical, or the second invites edits that go nowhere.
+ */
+
+.field {
+  min-width: 0;
+  width: 100%;
+  padding: var(--space-1) var(--space-2);
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  color: var(--text-primary);
+  font-size: var(--text-caption);
+}
+
+.field--mono {
+  font-family: var(--font-mono);
+  letter-spacing: 0;
+}
+
+.field--static {
+  border-style: dashed;
+  background: transparent;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.field-row--wrap {
+  flex-wrap: wrap;
+  row-gap: var(--space-2);
+}
+
+.field-row__label--auto {
+  width: auto;
+}
+
+.field-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex: 1;
+  min-width: 0;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.actions--end {
+  margin-left: auto;
+}
+
+.card--tight {
+  gap: var(--space-2);
+  padding: var(--space-3);
+}
+
+.card__label {
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+/* --- Tags: a choice set shown as its options, with the current one marked --- */
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-tag);
+  color: var(--text-tertiary);
+  font-size: var(--text-micro);
+  white-space: nowrap;
+}
+
+.tag[data-selected] {
+  border-color: var(--accent);
+  background: var(--accent-wash);
+  color: var(--text-primary);
+}
+
+.tag-set {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+/* --- Unbuilt region --- */
+
+.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-2);
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-chrome);
+  background: repeating-linear-gradient(135deg, var(--bg-hover) 0 6px, transparent 6px 12px);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+  font-size: var(--text-micro);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* --- Wizard --- */
+
+.wizard {
+  display: flex;
+  gap: var(--space-4);
+  flex: 1;
+  min-height: 0;
+}
+
+.wizard__steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  width: 190px;
+  flex: none;
+}
+
+.wizard__step {
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-chrome);
+  color: var(--text-tertiary);
+  font-size: var(--text-caption);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.wizard__step:hover {
+  background: var(--bg-hover);
+}
+
+.wizard__step[data-active] {
+  background: var(--bg-selected);
+  color: var(--text-primary);
+  font-weight: var(--weight-medium);
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+
+/* A step already passed stays reachable — a wizard that will not go back is a
+   wizard that makes the user start over. */
+.wizard__step[data-done] {
+  color: var(--text-secondary);
+}
+
+.wizard__body {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+/* --- Source listing with a gutter (LDIF, raw definitions) --- */
+
+.source {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-3) 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  line-height: 1.6;
+  color: var(--text-secondary);
+}
+
+.source__line {
+  display: flex;
+  gap: var(--space-3);
+  padding: 0 var(--space-3);
+  white-space: pre;
+}
+
+.source__gutter {
+  width: 26px;
+  flex: none;
+  text-align: right;
+  color: var(--text-tertiary);
+  user-select: none;
+}
+
+/* A flagged line is marked by colour and by the note at its end, never by
+   colour alone (design gap G2). */
+.source__line[data-severity='warning'] {
+  background: var(--warning-wash);
+}
+
+.source__line[data-severity='error'] {
+  background: var(--danger-wash);
+}
+
+.source__note {
+  color: var(--text-tertiary);
+}
+
+/* --- Log strip in the bottom panel --- */
+
+.log-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+/* --- Modal shell (used by the wizard when it opens over a view) --- */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-8);
+  background: rgb(0 0 0 / 55%);
+}
+
+.modal {
+  display: flex;
+  flex-direction: column;
+  width: min(880px, 100%);
+  max-height: 100%;
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-xl-2);
+  overflow: hidden;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-chrome);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.modal__title {
+  margin: 0;
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-semibold);
+}
+
+.modal__close {
+  margin-left: auto;
+  color: var(--text-tertiary);
+  font-size: var(--text-body);
+}
+
+.modal__close:hover {
+  color: var(--text-primary);
+}
+
+.modal__body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-4);
+}
+
+.modal__footer {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  padding: var(--space-3) var(--space-4);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* --- Notices shown inside a view rather than in the panel --- */
+
+.strip {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-chrome);
+  background: var(--bg-raised);
+  font-size: var(--text-caption);
+  color: var(--text-secondary);
+}
+
+.strip--warning {
+  border-left-color: var(--warning);
+  background: var(--warning-wash);
+}
+
+.strip--danger {
+  border-left-color: var(--danger);
+  background: var(--danger-wash);
+}
+
+.strip--success {
+  border-left-color: var(--success);
+  background: var(--success-wash);
+}
+
+.strip__title {
+  color: var(--text-primary);
+  font-weight: var(--weight-semibold);
+}

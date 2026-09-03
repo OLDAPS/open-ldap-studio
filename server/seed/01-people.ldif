@@ -1,0 +1,206 @@
+dn: cn=jrivera,ou=people,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: jrivera
+sn: Rivera
+givenName: Jordan
+displayName: Jordan Rivera
+uid: jrivera
+title: Platform Engineer
+departmentNumber: 4100
+employeeNumber: 10021
+telephoneNumber: +44 20 7946 0021
+o: Example Organisation
+l: London
+mail: j.rivera@example.org
+mail: jordan.rivera@example.org
+uidNumber: 10021
+gidNumber: 5000
+homeDirectory: /home/jrivera
+loginShell: /bin/bash
+userPassword: {SSHA}idkcqOjC44wtuUbvmVgXmHc7y8yMLhzrue0mMg==
+jpegPhoto:: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0V
+ FhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw
+ 7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wA
+ ARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAA
+ gEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcY
+ GRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipK
+ TlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8v
+ P09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFB
+ AQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygp
+ KjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJm
+ aoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9
+ oADAMBAAIRAxEAPwDHooor747gooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAo
+ oooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+ iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/2Q==
+description: Primary contact for the directory migration project, reachable 
+ through the platform on-call rota; this description runs past the 120-chara
+ cter truncation threshold on purpose so the entry editor has something to t
+ runcate and the value editor has something to open.
+labeledURI: https://wiki.example.org/~jrivera
+
+dn: cn=lchen,ou=people,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: lchen
+sn: Chen
+givenName: Li
+displayName: Li Chen
+uid: lchen
+title: Directory Administrator
+departmentNumber: 4100
+employeeNumber: 10044
+telephoneNumber: +44 20 7946 0044
+o: Example Organisation
+l: London
+mail: l.chen@example.org
+uidNumber: 10044
+gidNumber: 5000
+homeDirectory: /home/lchen
+loginShell: /bin/bash
+userPassword: {SSHA}7YKkXlAbur3AA5dB0zkB+7cDaaIjrfOOVB8svg==
+jpegPhoto:: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0V
+ FhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw
+ 7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wA
+ ARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAA
+ gEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcY
+ GRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipK
+ TlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8v
+ P09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFB
+ AQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygp
+ KjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJm
+ aoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9
+ oADAMBAAIRAxEAPwDfooorzT4oKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAK
+ KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAo
+ oooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q==
+description:: IGxlYWRpbmcgc3BhY2Ug4oCUIG11c3Qgcm91bmQtdHJpcCBhcyBiYXNlNjQ=
+manager: cn=jrivera,ou=people,dc=example,dc=org
+
+dn: cn=mokafor,ou=people,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: mokafor
+sn: Okafor
+givenName: Mary
+displayName: Mary Okafor
+uid: mokafor
+title: Service Desk Lead
+departmentNumber: 2200
+employeeNumber: 10077
+telephoneNumber: +44 20 7946 0077
+o: Example Organisation
+l: London
+mail: m.okafor@example.org
+uidNumber: 10077
+gidNumber: 5000
+homeDirectory: /home/mokafor
+loginShell: /bin/bash
+userPassword: {SSHA}SFN1jPyiZTFJmUN9uMPatbEZyQ0Dqbesa+XBGA==
+jpegPhoto:: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0V
+ FhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw
+ 7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wA
+ ARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAA
+ gEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcY
+ GRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipK
+ TlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8v
+ P09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFB
+ AQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygp
+ KjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJm
+ aoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9
+ oADAMBAAIRAxEAPwDt6KKK/MD3gooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigA
+ ooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAC
+ iiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKAP/9k=
+manager: cn=jrivera,ou=people,dc=example,dc=org
+
+dn: cn=tvasquez,ou=people,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: tvasquez
+sn:: VsOhc3F1ZXo=
+givenName:: VG9tw6Fz
+displayName:: VG9tw6FzIFbDoXNxdWV6
+uid: tvasquez
+title: Ingeniero de Redes
+departmentNumber: 3300
+employeeNumber: 10093
+telephoneNumber: +34 91 123 4567
+o: Example Organisation
+l: London
+mail: t.vasquez@example.org
+uidNumber: 10093
+gidNumber: 5000
+homeDirectory: /home/tvasquez
+loginShell: /bin/bash
+userPassword: {SSHA}A6SAQu0sfUVCfZjvqQarjv2PZ/2IQ+mTaDyZAQ==
+jpegPhoto:: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0V
+ FhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw
+ 7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wA
+ ARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAA
+ gEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcY
+ GRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipK
+ TlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8v
+ P09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFB
+ AQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygp
+ KjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJm
+ aoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9
+ oADAMBAAIRAxEAPwDUooorzT7YKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAK
+ KKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAo
+ oooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigD/2Q==
+description:: VHJhYmFqYSBkZXNkZSBNYWRyaWQg4oCUIGFjZW50b3M6IMOhw6nDrcOzw7ogw7
+ Egwr8/
+manager: cn=jrivera,ou=people,dc=example,dc=org
+
+dn: cn=aschmidt,ou=people,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+objectClass: posixAccount
+cn: aschmidt
+sn: Schmidt
+givenName: Anna
+displayName: Anna Schmidt
+uid: aschmidt
+title: Security Engineer
+departmentNumber: 4100
+employeeNumber: 10104
+telephoneNumber: +49 30 123456
+o: Example Organisation
+l: London
+mail: a.schmidt@example.org
+mail: anna.schmidt@example.org
+mail: schmidt@example.org
+mail: security@example.org
+uidNumber: 10104
+gidNumber: 5000
+homeDirectory: /home/aschmidt
+loginShell: /bin/bash
+userPassword: {SSHA}Kpyt7aErzkwEquAkb7zs6c7xiwSciJfnE0Clpw==
+jpegPhoto:: /9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAoHBwgHBgoICAgLCgoLDhgQDg0NDh0V
+ FhEYIx8lJCIfIiEmKzcvJik0KSEiMEExNDk7Pj4+JS5ESUM8SDc9Pjv/2wBDAQoLCw4NDhwQEBw
+ 7KCIoOzs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozs7Ozv/wA
+ ARCABgAGADASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAA
+ gEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcY
+ GRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipK
+ TlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8v
+ P09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFB
+ AQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygp
+ KjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJm
+ aoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9
+ oADAMBAAIRAxEAPwDaooor6k0CiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACi
+ iigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKK
+ KKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooAKKKKACiiigAooooA//2Q==
+manager: cn=jrivera,ou=people,dc=example,dc=org
+

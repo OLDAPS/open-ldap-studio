@@ -1,0 +1,20 @@
+dn: cn=readonly-svc,ou=services,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: readonly-svc
+sn: Read Only Service
+description: Bind account for read-only connections
+userPassword: {SSHA}7Vtm1yvGurNbEYw7S8iDQEHUw2izkm6omWafkQ==
+
+dn: cn=replication,ou=services,dc=example,dc=org
+objectClass: top
+objectClass: person
+objectClass: organizationalPerson
+objectClass: inetOrgPerson
+cn: replication
+sn: Replication Agent
+description: Used by the replication topology
+userPassword: {SSHA}OFuvqunM/zdkUexRq5RNljczzjiWLfbnjTpNPw==
+

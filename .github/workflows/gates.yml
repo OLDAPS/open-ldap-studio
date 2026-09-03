@@ -1,0 +1,37 @@
+name: Quality Gates
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Go
+      uses: actions/setup-go@v5
+      with:
+        go-version: '1.26'
+        
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+        
+    - name: Install govulncheck
+      run: go install golang.org/x/vuln/cmd/govulncheck@latest
+      
+    - name: Go Mod Verify
+      run: go mod verify
+      
+    - name: Go Vulnerability Check
+      run: govulncheck ./...
+      
+    - name: NPM Audit
+      working-directory: ./frontend
+      run: npm audit --audit-level=high

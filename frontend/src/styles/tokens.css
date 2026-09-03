@@ -1,0 +1,265 @@
+/*
+ * Design tokens.
+ *
+ * The palette is the Obsidian design system
+ * (https://styles.refero.design/style/e793a53c-537e-46b0-881d-b15b63b9ff26).
+ * Its thirteen colours are recorded verbatim in the --palette-* block and are
+ * never edited; everything below is a role that points at one of them, so a
+ * palette change is one edit and a role change is one edit, and neither is a
+ * search across the stylesheet.
+ *
+ * The chrome follows the wireframe's structure: the window frame is darker
+ * than the working area, and side panels sit a step lighter than both. The
+ * palette supplies two of those three surfaces (Abyss and Surface); the third
+ * is interpolated between them and is the only derived background here.
+ */
+
+:root {
+  /*
+   * Native widgets are drawn by the platform, not by this stylesheet: the
+   * option list a <select> pops up, checkbox and radio glyphs, number-input
+   * spinners, and the scrollbars outside our ::-webkit-scrollbar rules. Without
+   * this they render in the platform's light theme on top of a dark
+   * application — a white pop-up over a dark form. It is set per theme below.
+   */
+  color-scheme: dark;
+
+  /* --- Obsidian palette, verbatim --- */
+  --palette-white: #ffffff;
+  --palette-bright-gray: #eeeeee;
+  --palette-medium-gray: #bcbcbc;
+  --palette-muted-gray: #a3a3a3;
+  --palette-graphite: #3f3f3f;
+  --palette-surface: #1e1e1e;
+  --palette-abyss: #171717;
+  --palette-amethyst: #7c3aed;
+  --palette-lavender: #a78bfa;
+  --palette-tag: #8a5cf5;
+  --palette-success: #4ade80;
+  --palette-warning: #facc15;
+  --palette-error: #f87171;
+
+  /* --- Surfaces --- */
+  --bg-chrome: var(--palette-abyss);
+  --bg-app: #1a1a1a;
+  --bg-panel: var(--palette-surface);
+  --bg-raised: #232323;
+  --bg-hover: rgb(255 255 255 / 4%);
+  --bg-selected: rgb(255 255 255 / 7%);
+  --bg-tag: rgb(138 92 245 / 15%);
+
+  /* --- Text --- */
+  --text-primary: var(--palette-bright-gray);
+  --text-secondary: var(--palette-medium-gray);
+  --text-tertiary: var(--palette-muted-gray);
+  --text-on-accent: var(--palette-white);
+  --text-link: var(--palette-lavender);
+
+  /* --- Lines --- */
+  --border: var(--palette-graphite);
+  --border-subtle: rgb(255 255 255 / 7%);
+  --border-strong: #565656;
+
+  /* --- Accent --- */
+  --accent: var(--palette-amethyst);
+  --accent-hover: #6d28d9;
+  --accent-quiet: var(--palette-lavender);
+  --accent-wash: rgb(124 58 237 / 18%);
+
+  /* --- State --- */
+  --success: var(--palette-success);
+  --warning: var(--palette-warning);
+  --danger: var(--palette-error);
+  --success-wash: rgb(74 222 128 / 14%);
+  --warning-wash: rgb(250 204 21 / 14%);
+  --danger-wash: rgb(248 113 113 / 14%);
+
+  /*
+   * Diff colours are paired shape-with-colour, never colour alone: red and
+   * green together are unreadable for a substantial minority, and a diff is
+   * the one place this application cannot afford to be misread (design gap G2).
+   */
+  --diff-added: var(--palette-success);
+  --diff-added-wash: rgb(74 222 128 / 14%);
+  --diff-removed: var(--palette-error);
+  --diff-removed-wash: rgb(248 113 113 / 14%);
+  --diff-changed: var(--palette-lavender);
+  --diff-changed-wash: rgb(167 139 250 / 16%);
+
+  /* --- Type ---
+   *
+   * One family throughout: JetBrains Mono, bundled by fonts.css. A directory
+   * client is mostly DNs, filters, OIDs and base64 — text where column
+   * alignment and an unambiguous 0/O and 1/l/I are worth more than the
+   * proportional spacing a UI face would buy.
+   *
+   * --font-ui and --font-mono resolve to the same stack. Both names are kept:
+   * they mark intent at each call site, so the day a proportional UI face comes
+   * back it is one edit here rather than an audit of every rule.
+   */
+  --font-ui: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  /*
+   * Weight is the only typographic axis left once the family is fixed, so it
+   * carries the hierarchy on its own.
+   */
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+
+  --text-display: 63px;
+  --text-heading-lg: 39px;
+  --text-heading: 31px;
+  --text-heading-sm: 27px;
+  --text-subheading: 21px;
+  --text-body: 19px;
+  --text-body-sm: 17px;
+  --text-caption: 15px;
+  /* One step below the palette's caption, for chrome that must not crowd the
+     working area: the rail, the status bar, column headings. */
+  --text-micro: 14px;
+
+  /*
+   * Monospace sets its own rhythm: every glyph already occupies one fixed
+   * advance, and the negative tracking these tokens carried was measured
+   * against a proportional face. Tightening a mono only fights the metric, so
+   * body tracking is neutral and the uppercase label tracking — which opens
+   * small caps up rather than closing them — is kept.
+   */
+  --tracking-body: 0;
+  --tracking-body-sm: 0;
+  --tracking-caption: 0;
+  --tracking-label: 0.08em;
+
+  /* --- Spacing: 4px base, compact density --- */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-12: 48px;
+
+  /* --- Radii --- */
+  --radius-input: 8px;
+  --radius-button: 8px;
+  --radius-card: 12px;
+  --radius-tag: 9999px;
+  /* Chrome uses a tighter radius than content: an 8px corner on a 22px row
+     reads as a bubble rather than a control. */
+  --radius-chrome: 5px;
+
+  /* --- Elevation --- */
+  --shadow-subtle: rgb(255 255 255 / 5%) 0 0 0 1px inset;
+  --shadow-subtle-2: rgb(255 255 255 / 10%) 0 0 0 1px inset;
+  --shadow-subtle-3: rgb(255 255 255 / 10%) 0 0 0 1px inset, rgb(0 0 0 / 10%) 0 1px 3px 0;
+  --shadow-xl: rgb(0 0 0 / 10%) 0 20px 25px -5px, rgb(0 0 0 / 10%) 0 8px 10px -6px;
+  --shadow-xl-2: rgb(0 0 0 / 25%) 0 25px 50px -12px;
+
+  /* --- Chrome metrics, from the wireframe --- */
+  --h-titlebar: 30px;
+  --h-tabstrip: 32px;
+  --h-statusbar: 26px;
+  --h-toolbar: 34px;
+  --w-rail: 54px;
+  --w-sidebar: 268px;
+  --w-inspector: 250px;
+  --row-height: 24px;
+  --row-height-comfortable: 28px;
+}
+
+/*
+ * Light theme.
+ *
+ * The source style is dark-only, so this is a derived palette rather than a
+ * published one: the accents are unchanged, the greys are inverted through the
+ * same steps, and the state colours are darkened until they hold their
+ * contrast on white. It is marked as derived so nobody mistakes it for the
+ * design system's own light mode.
+ */
+[data-theme='light'] {
+  color-scheme: light;
+
+  --bg-chrome: #ececec;
+  --bg-app: #f6f6f6;
+  --bg-panel: #ffffff;
+  --bg-raised: #fafafa;
+  --bg-hover: rgb(0 0 0 / 4%);
+  --bg-selected: rgb(0 0 0 / 7%);
+  --bg-tag: rgb(124 58 237 / 12%);
+
+  --text-primary: #171717;
+  --text-secondary: #4a4a4a;
+  --text-tertiary: #6b6b6b;
+  --text-link: #6d28d9;
+
+  --border: #d4d4d4;
+  --border-subtle: rgb(0 0 0 / 9%);
+  --border-strong: #9a9a9a;
+
+  --accent-quiet: #7c3aed;
+  --accent-wash: rgb(124 58 237 / 12%);
+
+  --success: #15803d;
+  --warning: #a16207;
+  --danger: #b91c1c;
+
+  --diff-added: #15803d;
+  --diff-added-wash: rgb(21 128 61 / 10%);
+  --diff-removed: #b91c1c;
+  --diff-removed-wash: rgb(185 28 28 / 10%);
+  --diff-changed: #6d28d9;
+  --diff-changed-wash: rgb(109 40 217 / 10%);
+
+  --shadow-subtle: rgb(0 0 0 / 8%) 0 0 0 1px inset;
+  --shadow-subtle-2: rgb(0 0 0 / 12%) 0 0 0 1px inset;
+}
+
+/*
+ * High contrast.
+ *
+ * Not a cosmetic preference: FR-102's light/dark pair is unusable for some
+ * users, and the diff palette is where that bites hardest (design gap G2).
+ * Every border becomes solid, every muted grey becomes a readable one.
+ */
+[data-theme='high-contrast'] {
+  color-scheme: dark;
+
+  --bg-chrome: #000000;
+  --bg-app: #000000;
+  --bg-panel: #0a0a0a;
+  --bg-raised: #141414;
+  --bg-hover: rgb(255 255 255 / 12%);
+  --bg-selected: rgb(255 255 255 / 20%);
+
+  --text-primary: #ffffff;
+  --text-secondary: #eeeeee;
+  --text-tertiary: #d4d4d4;
+
+  --border: #ffffff;
+  --border-subtle: rgb(255 255 255 / 45%);
+  --border-strong: #ffffff;
+
+  --accent: #a78bfa;
+  --accent-quiet: #c4b5fd;
+  --accent-wash: rgb(167 139 250 / 30%);
+
+  --success: #86efac;
+  --warning: #fde047;
+  --danger: #fca5a5;
+
+  --diff-added: #86efac;
+  --diff-added-wash: rgb(134 239 172 / 22%);
+  --diff-removed: #fca5a5;
+  --diff-removed-wash: rgb(252 165 165 / 22%);
+  --diff-changed: #c4b5fd;
+  --diff-changed-wash: rgb(196 181 253 / 22%);
+}
+
+/* Row density, from preference pane 5a. */
+[data-density='comfortable'] {
+  --row-height: var(--row-height-comfortable);
+}

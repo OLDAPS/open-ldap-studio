@@ -1,0 +1,136 @@
+@import './fonts.css';
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  background: var(--bg-app);
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  font-size: var(--text-body-sm);
+  font-weight: var(--weight-regular);
+  line-height: 1.5;
+  letter-spacing: var(--tracking-body-sm);
+  -webkit-font-smoothing: antialiased;
+}
+
+/*
+ * Focus is never removed, only restyled. Every command in this application is
+ * reachable from the keyboard (FR-102), which is worth nothing if the focused
+ * element is invisible.
+ */
+:focus {
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent-quiet);
+  outline-offset: 1px;
+  border-radius: var(--radius-chrome);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text-primary);
+  background: var(--bg-app);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-input);
+  padding: var(--space-1) var(--space-2);
+}
+
+input::placeholder {
+  color: var(--text-tertiary);
+}
+
+/*
+ * The pop-up list is drawn outside the page, so color-scheme in tokens.css is
+ * what actually themes it. These rules only cover engines that let the page
+ * paint the options; they are a fallback, not the fix.
+ */
+option {
+  background: var(--bg-raised);
+  color: var(--text-primary);
+}
+
+/* A select is a control, not a text field: the caret says so. */
+select {
+  cursor: pointer;
+}
+
+/*
+ * Now that the whole interface is monospaced, this no longer changes the face
+ * — it marks machine text (DNs, filters, OIDs, result codes) and steps it down
+ * one size, which is what keeps a dense value column readable beside prose.
+ * The family is still named so the intent survives a change of --font-ui.
+ */
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--text-caption);
+  letter-spacing: 0;
+}
+
+.dim {
+  color: var(--text-tertiary);
+}
+
+/* A label above a group: uppercase, tracked out, quiet. */
+.section-label {
+  font-size: var(--text-micro);
+  font-weight: var(--weight-medium);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 6px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--border-strong);
+  background-clip: content-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

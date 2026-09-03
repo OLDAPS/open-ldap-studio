@@ -1,0 +1,25 @@
+/*
+ * JetBrains Mono, self-hosted.
+ *
+ * The font ships with the application rather than being fetched at run time.
+ * This is a desktop client that must work on an air-gapped network, and a
+ * webfont CDN would mean both an outbound request nobody asked for and a
+ * fallback face on the machines that matter most.
+ *
+ * Four weights, because the family is doing the whole typographic job here:
+ * there is no second family to change to, so weight is the only axis left for
+ * telling a title from a value.
+ *
+ *   400  regular   — body, values, everything unmarked
+ *   500  medium    — column headers, section labels, the selected row
+ *   600  semi-bold — window, document and panel titles
+ *   700  bold      — reserved for the display sizes
+ *
+ * Each import carries every subset the family covers (latin, latin-ext, greek,
+ * cyrillic, vietnamese) with unicode-range set, so a Cyrillic cn renders in the
+ * same face as the rest and nothing extra is parsed to get there.
+ */
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/500.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import '@fontsource/jetbrains-mono/700.css';
