@@ -1,0 +1,45 @@
+- M0 Project structure
+    - CI/CD
+        - Create Tag for each build
+            - Publish binary artifact in github
+            - Use google PR release
+        - Create release notes
+            - Features, bugfix, etc
+        - Lint
+            - golps
+            - gofmt
+    - Test infra
+        - Unit
+        - Functional
+- M1 Connection Screen
+    - Encryption: No Encryption and LDAPS
+    - Authentication
+        - Simple Bind, Anonymous
+        - Check authentication button
+        - Base DN to connect
+    - Profiles
+        - Ensure there is only one open connection per time
+    - Add function to cancel, back, next, finish
+    - Double click on server show conn status
+    - CRUD connection
+    - Disconnect Button
+    - Plus button should create a new ldap connection
+    - Refresh connection button
+    - Change progress bottom bar to Events
+        - Log all events, binds, disconnects, connection edit etc
+        - Should show last 5 events only
+    - Connection Status Sub Screen
+        - Add More data
+            - User connected
+            - Base DN
+            - State - Connected or Disconnected
+            - Host
+            - Encryption
+            - Mode
+- M2 Secrets
+- M3 DIT Screen
+- M4 Search Screen
+- M5 MVP Release
+
+Post MVP
+- Profile Workspace
