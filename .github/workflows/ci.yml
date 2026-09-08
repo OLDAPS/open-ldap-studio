@@ -1,42 +1,205 @@
 name: CI
 
 on:
-  push:
-    branches: [ "main" ]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
+  push:
+    branches: ["main"]
+
+# A new push to a pull request makes the run in flight irrelevant.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  GO_VERSION: "1.26"
+  NODE_VERSION: "22"
+  WAILS_VERSION: v2.15.0
 
 jobs:
+  # Release Please derives the next version and the changelog from commit
+  # subjects, so a non-conforming title silently produces a wrong release.
+  # Squash-merging means the pull request title becomes that subject.
+  pr-title:
+    name: Conventional pull request title
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            perf
+            revert
+            refactor
+            docs
+            build
+            ci
+            test
+            style
+            chore
+
+  frontend:
+    name: Frontend lint, test, build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        working-directory: ./frontend
+        run: npm ci
+
+      # Like only-new-issues on the Go side: the frontend carries pre-existing
+      # eslint and prettier findings, so the gate is the diff, not the tree.
+      # Cleaning the backlog is #119 (T007); once it is clean, drop the diff
+      # and run `npm run lint` over everything.
+      - name: Resolve changed frontend sources
+        if: github.event_name == 'pull_request'
+        id: changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --no-tags origin "${{ github.base_ref }}"
+          base="origin/${{ github.base_ref }}"
+          files=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD \
+            | grep -E '^frontend/src/.*\.(ts|tsx|css)$' \
+            | sed 's|^frontend/||' || true)
+          {
+            echo "files<<EOF"
+            echo "$files"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+          echo "Changed: ${files:-none}"
+
+      - name: Lint changed files
+        if: github.event_name == 'pull_request' && steps.changed.outputs.files != ''
+        working-directory: ./frontend
+        run: echo "${{ steps.changed.outputs.files }}" | xargs npx eslint --max-warnings 0
+
+      - name: Format check changed files
+        if: github.event_name == 'pull_request' && steps.changed.outputs.files != ''
+        working-directory: ./frontend
+        run: echo "${{ steps.changed.outputs.files }}" | xargs npx prettier --check
+
+      - name: Test
+        working-directory: ./frontend
+        run: npm run test
+
+      - name: Build
+        working-directory: ./frontend
+        run: npm run build
+
+  go:
+    name: Go lint and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # only-new-issues below diffs against the base branch, which has to
+          # be in the local history for the diff to exist.
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Linux dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      # main.go embeds frontend/dist, which is not committed. Without it every
+      # Go command in this job fails to compile, lint included.
+      - name: Build the embedded frontend
+        working-directory: ./frontend
+        run: npm ci && npm run build
+
+      - name: Vet
+        run: go vet ./...
+
+      # only-new-issues gates just the code this pull request touches; it needs
+      # a diff base, so it is a pull-request-only step. The repository carries
+      # 232 pre-existing findings — see #118 for that cleanup, after which this
+      # can run on push too and drop only-new-issues.
+      - name: Lint
+        if: github.event_name == 'pull_request'
+        uses: golangci/golangci-lint-action@v6
+        with:
+          version: v1.64.8
+          only-new-issues: true
+
+      - name: Unit tests
+        run: go test -short -race -coverprofile=coverage.out ./...
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: go-coverage
+          path: coverage.out
+          retention-days: 14
+
   build:
+    name: Build ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-    runs-on: ${{ matrix.os }}
-    
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: '1.26'
-        
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-        
-    - name: Install Linux Dependencies
-      if: runner.os == 'Linux'
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-        
-    - name: Install Wails CLI
-      run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
-      
-    - name: Build
-      run: make build
-      
-    - name: Test
-      run: make test
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ env.GO_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install Linux dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: wails build -tags webkit2_41 -clean
+
+      - name: Build (macOS, Windows)
+        if: runner.os != 'Linux'
+        run: wails build -clean
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: open-ldap-studio-${{ runner.os }}
+          path: build/bin/
+          retention-days: 7
