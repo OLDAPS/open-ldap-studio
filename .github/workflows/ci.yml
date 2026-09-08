@@ -150,7 +150,9 @@ jobs:
           version: v1.64.8
           only-new-issues: true
 
-      - name: Unit tests
+      # Race detector and coverage run once, on Linux; the matrix covers the
+      # per-platform code paths.
+      - name: Race tests and coverage
         run: go test -short -race -coverprofile=coverage.out ./...
 
       - name: Upload coverage
@@ -188,6 +190,16 @@ jobs:
 
       - name: Install Wails
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      - name: Build the embedded frontend
+        working-directory: ./frontend
+        run: npm ci && npm run build
+
+      # keychain_darwin.go, wincred_windows.go and secretservice_linux.go each
+      # compile on one platform only, so Linux-only testing never reaches two
+      # of the three credential bindings.
+      - name: Unit tests
+        run: go test -short ./...
 
       - name: Build (Linux)
         if: runner.os == 'Linux'
