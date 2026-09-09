@@ -1,8 +1,8 @@
 module github.com/open-ldap-studio/open-ldap-studio
 
-go 1.26.0
+go 1.27.0
 
-toolchain go1.26.9
+toolchain go1.27.2
 
 require (
 	github.com/danieljoos/wincred v1.2.3

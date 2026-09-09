@@ -3,7 +3,7 @@
 ## Prerequisites
 
 To build and run this project, you will need:
-- Go 1.26 or later
+- Go 1.27 or later (the pinned Go 1.27.2 toolchain is selected automatically)
 - Node.js 22 or later
 - Wails CLI v2.15.0 (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0`)
 
