@@ -5,7 +5,7 @@
  * which is the difference between a tool you work in and a tool you visit
  * (screens.md § Shell).
  */
-import { useSession } from '@/store/session';
+import { useSession } from '@/app/session';
 
 const GLYPH: Record<string, string> = {
   entry: '◍',

@@ -168,12 +168,14 @@ func TestOnlySecretsImportsAPlatformCredentialAPI(t *testing.T) {
 // credential boundary: packages may hand a Secret to a bind, but nothing
 // outside secrets may construct one from arbitrary bytes it read itself.
 func TestOnlyExpectedPackagesTouchTheSecretsPackage(t *testing.T) {
-	// ldapx sends the secret; bridge resolves it and hands it over. Nothing
-	// else has a reason to hold one.
+	// ldapx sends the secret; connections resolves it and hands it over. The
+	// bridge accepts short-lived secrets from transport calls. Nothing else has
+	// a reason to hold one.
 	permitted := map[string]bool{
-		"internal/secrets": true,
-		"internal/ldapx":   true,
-		"internal/bridge":  true,
+		"internal/secrets":     true,
+		"internal/ldapx":       true,
+		"internal/connections": true,
+		"internal/bridge":      true,
 	}
 
 	for _, pkg := range firstPartyPackages(t) {

@@ -6,8 +6,8 @@
  * user can look at, and cancelling it the only thing they can do (FR-089,
  * FR-099).
  */
-import { useSession } from '@/store/session';
-import type { PanelTab } from '@/store/session';
+import { useSession } from '@/app/session';
+import type { PanelTab } from '@/app/session';
 import { bridge } from '@/bridge/client';
 
 const TABS: { id: PanelTab; label: string }[] = [

@@ -12,14 +12,14 @@ import { StatusBar } from './StatusBar';
 import { TitleBar } from './TitleBar';
 import { events } from '@/bridge/events';
 import { bridge, isEmbedded } from '@/bridge/client';
-import { useCommands } from '@/commands/CommandProvider';
-import { useSession } from '@/store/session';
-import { BrowserView } from '@/views/BrowserView';
-import { ConnectionsView } from '@/views/ConnectionsView';
-import { FilesView } from '@/views/FilesView';
-import { PreferencesView } from '@/views/PreferencesView';
-import { SchemaView } from '@/views/SchemaView';
-import { SearchesView } from '@/views/SearchesView';
+import { useCommands } from '@/app/CommandProvider';
+import { useSession } from '@/app/session';
+import { BrowserView } from '@/features/browser/components/BrowserView';
+import { ConnectionsView } from '@/features/connections/components/ConnectionsView';
+import { FilesView } from '@/features/files/components/FilesView';
+import { PreferencesView } from '@/features/preferences/components/PreferencesView';
+import { SchemaView } from '@/features/schema/components/SchemaView';
+import { SearchesView } from '@/features/search/components/SearchesView';
 
 export function Shell() {
   const perspective = useSession((s) => s.perspective);
