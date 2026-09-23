@@ -9,6 +9,7 @@ import (
 
 	"github.com/open-ldap-studio/open-ldap-studio/internal/changeset"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/commands"
+	"github.com/open-ldap-studio/open-ldap-studio/internal/connections"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/jobs"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/logging"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/profiles"
@@ -39,7 +40,7 @@ type Bridge struct {
 	secretsReason string
 	trust         *trust.Store
 
-	conns *connections
+	conns *connections.Manager
 
 	mu    sync.RWMutex
 	ready bool
@@ -81,7 +82,7 @@ func New(logs *logging.Logs) *Bridge {
 	}
 	b.trust = trustStore
 
-	b.conns = newConnections(b, provider)
+	b.conns = connections.New(b, provider, b.trustPolicy, logs)
 	b.pipeline = changeset.NewPipeline(b.conns, store, changeset.Guard{RequireProductionConfirmation: true})
 
 	return b
@@ -108,7 +109,7 @@ func (b *Bridge) Startup(ctx context.Context) {
 // Shutdown cancels every running job and closes every connection.
 func (b *Bridge) Shutdown() {
 	b.jobs.CancelAll()
-	b.conns.closeAll()
+	b.conns.CloseAll()
 	if session, ok := b.secrets.(*secrets.Session); ok {
 		session.Zero()
 	}

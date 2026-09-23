@@ -4,8 +4,8 @@
  * Six, not seven. The LDAP Servers perspective the wireframe drew is dropped
  * with local server management (deviation D1).
  */
-import type { Perspective } from '@/store/session';
-import { useSession } from '@/store/session';
+import type { Perspective } from '@/app/session';
+import { useSession } from '@/app/session';
 
 interface RailEntry {
   id: Perspective;

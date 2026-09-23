@@ -1,9 +1,10 @@
 package bridge
 
 import (
-	"errors"
 	"context"
+	"errors"
 
+	"github.com/open-ldap-studio/open-ldap-studio/internal/connections"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/jobs"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/profiles"
@@ -35,7 +36,7 @@ func (b *Bridge) SaveProfile(payload string) (profiles.Profile, error) {
 // Dropping the profile without the secret would leave material in the platform
 // store that nothing in this application can reach or name any more.
 func (b *Bridge) DeleteProfile(id string) error {
-	if err := b.Disconnect(id); err != nil && !errors.Is(err, ErrNotConnected) {
+	if err := b.Disconnect(id); err != nil && !errors.Is(err, connections.ErrNotConnected) {
 		return err
 	}
 	_ = b.secrets.Delete(secretRef(id))
@@ -66,7 +67,7 @@ func (b *Bridge) Connect(profileID string) (string, error) {
 	id := b.jobs.Start(b.context(), jobs.KindConnect, jobs.ModeExecute, profileID, 0,
 		func(ctx context.Context, reporter *jobs.Reporter) error {
 			reporter.Progress(0, 1, "connecting to "+p.Host)
-			conn, err := b.conns.dial(ctx, p, nil)
+			conn, err := b.conns.Dial(ctx, p, nil)
 			if err != nil {
 				return err
 			}
@@ -91,36 +92,20 @@ func (b *Bridge) Connect(profileID string) (string, error) {
 
 // Disconnect closes a connection.
 func (b *Bridge) Disconnect(profileID string) error {
-	conn, err := b.conns.conn(profileID)
-	if err != nil {
-		return err
-	}
-	b.conns.mu.Lock()
-	delete(b.conns.open, profileID)
-	b.conns.mu.Unlock()
-
-	closeErr := conn.Close()
-	b.conns.setState(ConnState{ProfileID: profileID, State: StateDisconnected})
-	return closeErr
+	return b.conns.Disconnect(profileID)
 }
 
 // ConnectionState returns what the status bar shows for a profile.
-func (b *Bridge) ConnectionState(profileID string) ConnState { return b.conns.stateOf(profileID) }
+func (b *Bridge) ConnectionState(profileID string) ConnState { return b.conns.State(profileID) }
 
 // ConnectionStates returns the state of every profile the session has touched.
 func (b *Bridge) ConnectionStates() []ConnState {
-	b.conns.mu.RLock()
-	defer b.conns.mu.RUnlock()
-	out := make([]ConnState, 0, len(b.conns.state))
-	for _, s := range b.conns.state {
-		out = append(out, s)
-	}
-	return out
+	return b.conns.States()
 }
 
 // WhoAmI asks the server which identity it believes is bound (FR-011).
 func (b *Bridge) WhoAmI(profileID string) (string, ldapx.Result, error) {
-	conn, err := b.conns.conn(profileID)
+	conn, err := b.conns.Conn(profileID)
 	if err != nil {
 		return "", ldapx.Result{}, err
 	}
@@ -129,7 +114,7 @@ func (b *Bridge) WhoAmI(profileID string) (string, ldapx.Result, error) {
 
 // RootDSE returns what the server publishes about itself (FR-012).
 func (b *Bridge) RootDSE(profileID string) (ldapx.RootDSE, ldapx.Result, error) {
-	conn, err := b.conns.conn(profileID)
+	conn, err := b.conns.Conn(profileID)
 	if err != nil {
 		return ldapx.RootDSE{}, ldapx.Result{}, err
 	}
@@ -146,7 +131,7 @@ func (b *Bridge) ValidateFilter(filter string) ldapx.FilterDiagnostic {
 // server-side truncation rather than showing a short list as complete
 // (FR-018).
 func (b *Bridge) ListChildren(profileID, dn string, page ldapx.PageRequest) (ldapx.Page, error) {
-	conn, err := b.conns.conn(profileID)
+	conn, err := b.conns.Conn(profileID)
 	if err != nil {
 		return ldapx.Page{}, err
 	}
@@ -158,7 +143,7 @@ func (b *Bridge) ListChildren(profileID, dn string, page ldapx.PageRequest) (lda
 
 // ReadEntry reads one entry, optionally with its operational attributes.
 func (b *Bridge) ReadEntry(profileID, dn string, opts ldapx.ReadOptions) (ldapx.Entry, ldapx.Result, error) {
-	conn, err := b.conns.conn(profileID)
+	conn, err := b.conns.Conn(profileID)
 	if err != nil {
 		return ldapx.Entry{}, ldapx.Result{}, err
 	}

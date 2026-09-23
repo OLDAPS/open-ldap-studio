@@ -6,7 +6,7 @@
  */
 import { MenuBar } from './MenuBar';
 import { windowControls } from '@/bridge/client';
-import { useSession } from '@/store/session';
+import { useSession } from '@/app/session';
 
 export function TitleBar() {
   const connection = useSession((s) => s.activeConnection());

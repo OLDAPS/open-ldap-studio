@@ -13,7 +13,7 @@
  *     the opt-out was a decision and its consequence should not be invisible
  *     (FR-006).
  */
-import { useSession } from '@/store/session';
+import { useSession } from '@/app/session';
 
 export interface StatusCounts {
   /** Entries loaded in the active view, and the total where the server said. */

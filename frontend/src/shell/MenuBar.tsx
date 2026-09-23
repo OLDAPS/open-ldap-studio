@@ -7,9 +7,9 @@
  */
 import { useEffect, useRef } from 'react';
 
-import { useCommands } from '@/commands/CommandProvider';
+import { useCommands } from '@/app/CommandProvider';
 import type { MenuItem, MenuName } from '@/bridge/types';
-import { useSession } from '@/store/session';
+import { useSession } from '@/app/session';
 
 const MENUS: MenuName[] = [
   'File',
