@@ -1,3 +1,8 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5f — Credentials & security.
  *
@@ -10,87 +15,87 @@
 export function SecurityPane() {
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Secret storage</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Storage</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               platform credential store
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               session only
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               never store
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
           <span className="field-row__label">Unlock</span>
           <span className="dim">
             deferred to the first bind and raised by the platform agent — this application never
             prompts for a master password of its own
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-prompt">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-prompt">
             Password prompt
-          </label>
-          <select id="pref-prompt" className="field" defaultValue="session">
+          </FieldLabel>
+          <NativeSelect id="pref-prompt" className="field" defaultValue="session">
             <option value="session">once per session</option>
             <option value="bind">every bind</option>
-          </select>
-        </div>
-      </div>
+          </NativeSelect>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Policy</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Plaintext bind</span>
           <span className="tag-set">
-            <button type="button" className="tag">
+            <Button variant="outline" size="xs" type="button" className="tag">
               warn
-            </button>
-            <button type="button" className="tag" data-selected>
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               block unless StartTLS
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               allow
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row field-row--wrap">
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">On exit</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               clear session secrets
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               clear DN history
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
           <span className="field-row__label">Trusted certificates</span>
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             Manage store…
-          </button>
+          </Button>
           <span className="dim">trust-once decisions are dropped when the session ends</span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-retention">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-retention">
             Audit retention
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-retention"
             className="field"
             defaultValue="30 days"
             style={{ width: 110, flex: 'none' }}
           />
           <span className="dim">modification and search logs rotate at 10 MB × 3</span>
-        </div>
-      </div>
+        </Field>
+      </Card>
     </>
   );
 }

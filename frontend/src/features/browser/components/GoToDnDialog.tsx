@@ -1,22 +1,30 @@
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { AppDialog } from '@/components/ui/app-dialog';
 import React from 'react';
 
 export function GoToDnDialog() {
   return (
-    <div className="modal-overlay">
-      <div className="modal goto-dn-dialog">
-        <div className="modal__header">
-          <h3>Go to DN</h3>
-          <button className="modal__close">×</button>
-        </div>
-        <div className="modal__body">
-          <label>Enter Distinguished Name or LDAP URL:</label>
-          <input type="text" placeholder="cn=admin,dc=example,dc=org" style={{ width: '100%', marginTop: '8px' }} />
-        </div>
-        <div className="modal__footer">
-          <button className="button">Cancel</button>
-          <button className="button button--primary">Go</button>
-        </div>
+    <AppDialog className="goto-dn-dialog" title="Go to DN">
+      <div className="modal__header">
+        <h3>Go to DN</h3>
+        <Button variant="ghost" size="icon-sm" className="modal__close">
+          ×
+        </Button>
       </div>
-    </div>
+      <div className="modal__body">
+        <Label>Enter Distinguished Name or LDAP URL:</Label>
+        <Input
+          type="text"
+          placeholder="cn=admin,dc=example,dc=org"
+          style={{ width: '100%', marginTop: '8px' }}
+        />
+      </div>
+      <div className="modal__footer">
+        <Button variant="outline">Cancel</Button>
+        <Button variant="default">Go</Button>
+      </div>
+    </AppDialog>
   );
 }

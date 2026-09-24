@@ -159,7 +159,7 @@
 .pane-tab[data-active] {
   color: var(--text-primary);
   font-weight: var(--weight-medium);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: inset 0 -2px 0 var(--text-tertiary);
 }
 
 /* --- Data grid ---
@@ -254,6 +254,13 @@
   font-size: var(--text-caption);
 }
 
+/* NativeSelect owns the visible control; its wrapper keeps legacy flex sizing. */
+[data-slot='native-select-wrapper'].field {
+  padding: 0;
+  background: transparent;
+  border: 0;
+}
+
 .field--mono {
   font-family: var(--font-mono);
   letter-spacing: 0;
@@ -321,9 +328,10 @@
   white-space: nowrap;
 }
 
-.tag[data-selected] {
-  border-color: var(--accent);
-  background: var(--accent-wash);
+.tag[data-selected],
+.tag[data-pressed] {
+  border-color: var(--text-tertiary);
+  background: var(--bg-selected);
   color: var(--text-primary);
 }
 
@@ -385,7 +393,7 @@
   background: var(--bg-selected);
   color: var(--text-primary);
   font-weight: var(--weight-medium);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 2px 0 0 var(--text-tertiary);
 }
 
 /* A step already passed stays reachable — a wizard that will not go back is a
@@ -454,24 +462,16 @@
   color: var(--text-secondary);
 }
 
-/* --- Modal shell (used by the wizard when it opens over a view) --- */
-
-.modal-overlay {
-  position: fixed;
-  inset: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: var(--space-8);
-  background: rgb(0 0 0 / 55%);
-}
+/* --- Dialog content geometry (overlay/focus behavior comes from shadcn) --- */
 
 .modal {
   display: flex;
   flex-direction: column;
   width: min(880px, 100%);
+  max-width: min(880px, calc(100% - 2rem));
   max-height: 100%;
+  gap: 0;
+  padding: 0;
   background: var(--bg-app);
   border: 1px solid var(--border);
   border-radius: var(--radius-card);

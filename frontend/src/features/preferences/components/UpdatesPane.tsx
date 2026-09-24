@@ -1,3 +1,7 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5h — Updates & about.
  *
@@ -8,48 +12,48 @@
 export function UpdatesPane() {
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Updates</span>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-check">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-check">
             Check for updates
-          </label>
-          <select id="pref-check" className="field" defaultValue="never">
+          </FieldLabel>
+          <NativeSelect id="pref-check" className="field" defaultValue="never">
             <option value="never">never (default)</option>
             <option value="startup">on start-up</option>
             <option value="weekly">weekly</option>
-          </select>
-          <button type="button" className="button">
+          </NativeSelect>
+          <Button type="button" variant="outline">
             Check now
-          </button>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-proxy">
+          </Button>
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-proxy">
             Proxy
-          </label>
-          <select id="pref-proxy" className="field" defaultValue="system">
+          </FieldLabel>
+          <NativeSelect id="pref-proxy" className="field" defaultValue="system">
             <option value="system">system proxy</option>
             <option value="direct">direct</option>
             <option value="manual">manual…</option>
-          </select>
-        </div>
+          </NativeSelect>
+        </Field>
         <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
           Off by default is deliberate: an update check is an outbound connection, and this
           application makes none the user did not ask for.
         </p>
-      </div>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">About</span>
-        <div className="field-row">
+        <Field orientation="horizontal" className="field-row">
           <span className="field-row__label">Version</span>
           <span className="mono">development build</span>
-        </div>
-        <div className="field-row">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
           <span className="field-row__label">Licence</span>
           <span className="dim">open source</span>
-        </div>
-      </div>
+        </Field>
+      </Card>
     </>
   );
 }

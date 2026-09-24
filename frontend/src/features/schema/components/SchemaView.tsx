@@ -1,3 +1,5 @@
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 1d — schema browser, read-only.
  *
@@ -19,21 +21,22 @@ export function SchemaView() {
         <div className="sidebar__header">
           <span>Schema · {connection?.serverIdentity ?? 'no connection'}</span>
           <span className="sidebar__actions mono">
-            <button type="button" className="button button--quiet" title="Find" aria-label="Find">
+            <Button type="button" variant="ghost" size="xs" title="Find" aria-label="Find">
               ⌕
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="button button--quiet"
+              variant="ghost"
+              size="xs"
               title="Reload schema"
               aria-label="Reload schema"
             >
               ⟳
-            </button>
+            </Button>
           </span>
         </div>
 
-        <input
+        <Input
           className="field sidebar__filter"
           type="search"
           placeholder="search object class / attribute…"

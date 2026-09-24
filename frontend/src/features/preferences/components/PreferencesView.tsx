@@ -1,3 +1,6 @@
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 3a — Preferences: a settings tree, a pane, and a live preview.
  *
@@ -57,7 +60,7 @@ export function PreferencesView() {
           <span className="sidebar__actions mono">⌕</span>
         </div>
 
-        <input
+        <Input
           className="field sidebar__filter"
           type="search"
           value={filter}
@@ -68,7 +71,9 @@ export function PreferencesView() {
 
         <div className="sidebar__body">
           {visible.map((entry) => (
-            <button
+            <Button
+              variant="ghost"
+              size="xs"
               key={entry.id}
               type="button"
               className="tree-row"
@@ -78,7 +83,7 @@ export function PreferencesView() {
               <span className="tree-row__twisty" aria-hidden="true" />
               <span className="tree-row__glyph" aria-hidden="true" />
               <span>{entry.label}</span>
-            </button>
+            </Button>
           ))}
           {visible.length === 0 ? <p className="sidebar__note">no matching settings</p> : null}
         </div>
@@ -89,15 +94,15 @@ export function PreferencesView() {
           <span>Preferences › {current?.label}</span>
           <span className="toolbar__spacer" />
           <div className="actions">
-            <button type="button" className="button">
+            <Button type="button" variant="outline">
               Restore defaults
-            </button>
-            <button type="button" className="button">
+            </Button>
+            <Button type="button" variant="outline">
               Export…
-            </button>
-            <button type="button" className="button button--primary">
+            </Button>
+            <Button type="button" variant="default">
               Apply
-            </button>
+            </Button>
           </div>
         </div>
 
@@ -132,13 +137,13 @@ function LivePreview() {
         <span>Live preview</span>
       </div>
       <div className="inspector__body">
-        <div className="card card--tight">
+        <Card className="card card--tight">
           <div className="mono">dn: cn=jrivera,ou=people</div>
           <div className="mono dim">objectClass: inetOrgPerson</div>
           <div className="mono" style={{ color: 'var(--accent-quiet)' }}>
             mail: j.rivera@example.com
           </div>
-        </div>
+        </Card>
         <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
           The preview reflects theme, fonts and density before Apply. Nothing on these panes changes
           directory data.

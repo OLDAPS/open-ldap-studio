@@ -1,3 +1,7 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Alert } from '@/components/ui/alert';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 3c — wizard step 2: the bind identity.
  *
@@ -44,11 +48,13 @@ export function AuthStep({
     <>
       <span className="card__label">Authentication</span>
 
-      <div className="field-row field-row--wrap">
+      <Field orientation="horizontal" className="field-row field-row--wrap">
         <span className="field-row__label">Method</span>
         <span className="tag-set">
           {METHODS.map(([id, label]) => (
-            <button
+            <Button
+              variant="outline"
+              size="xs"
               key={id}
               type="button"
               className="tag"
@@ -56,10 +62,10 @@ export function AuthStep({
               onClick={() => patch({ bindMethod: id })}
             >
               {label}
-            </button>
+            </Button>
           ))}
         </span>
-      </div>
+      </Field>
 
       {anonymous ? (
         <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
@@ -68,11 +74,11 @@ export function AuthStep({
         </p>
       ) : (
         <>
-          <div className="field-row">
-            <label className="field-row__label" htmlFor="auth-dn">
+          <Field orientation="horizontal" className="field-row">
+            <FieldLabel className="field-row__label" htmlFor="auth-dn">
               Bind DN
-            </label>
-            <input
+            </FieldLabel>
+            <Input
               id="auth-dn"
               className="field field--mono"
               placeholder="cn=admin,dc=example,dc=org"
@@ -80,13 +86,13 @@ export function AuthStep({
               value={draft.bindDn}
               onChange={(e) => patch({ bindDn: e.target.value })}
             />
-          </div>
+          </Field>
 
-          <div className="field-row">
-            <label className="field-row__label" htmlFor="auth-secret">
+          <Field orientation="horizontal" className="field-row">
+            <FieldLabel className="field-row__label" htmlFor="auth-secret">
               Password
-            </label>
-            <input
+            </FieldLabel>
+            <Input
               id="auth-secret"
               className="field"
               type="password"
@@ -95,7 +101,7 @@ export function AuthStep({
               value={draft.secret}
               onChange={(e) => patch({ secret: e.target.value })}
             />
-          </div>
+          </Field>
 
           <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
             On Finish the secret goes to the platform credential store; the connection file keeps
@@ -105,24 +111,24 @@ export function AuthStep({
       )}
 
       {!anonymous && !encrypted ? (
-        <div className="strip strip--danger">
+        <Alert className="strip strip--danger">
           <span className="strip__title">Clear text</span>
           <span>
             This credential would cross an unencrypted transport. Choose StartTLS or LDAPS on step
             1, or bind anonymously.
           </span>
-        </div>
+        </Alert>
       ) : null}
 
       <div className="actions">
-        <button
+        <Button
           type="button"
-          className="button"
+          variant="outline"
           onClick={onCheck}
           disabled={busy || !draft.host || (!anonymous && !draft.bindDn)}
         >
           {busy ? 'Checking…' : 'Check authentication'}
-        </button>
+        </Button>
         <BindOutcome result={result} busy={busy} />
       </div>
     </>

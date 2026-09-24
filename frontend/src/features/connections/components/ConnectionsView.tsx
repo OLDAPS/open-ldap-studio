@@ -1,3 +1,7 @@
+import { Field } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 1a — Connections: the list, and the wizard that adds to it.
  *
@@ -93,24 +97,26 @@ export function ConnectionsView() {
         <div className="sidebar__header">
           <span>Connections</span>
           <span className="sidebar__actions mono">
-            <button
+            <Button
               type="button"
-              className="button button--quiet"
+              variant="ghost"
+              size="xs"
               title="New connection"
               aria-label="New connection"
               onClick={() => setWizardOpen(true)}
             >
               +
-            </button>
-            <button
+            </Button>
+            <Button
               type="button"
-              className="button button--quiet"
+              variant="ghost"
+              size="xs"
               title="Refresh"
               aria-label="Refresh"
               onClick={() => void refresh()}
             >
               ⟳
-            </button>
+            </Button>
           </span>
         </div>
 
@@ -125,7 +131,9 @@ export function ConnectionsView() {
             profiles.map((profile) => {
               const state = stateOf(profile.id);
               return (
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   key={profile.id}
                   type="button"
                   className="tree-row"
@@ -141,7 +149,7 @@ export function ConnectionsView() {
                   <StateDot state={state} />
                   <span>{profile.name}</span>
                   {profile.readOnly ? <span className="tree-row__count">read-only</span> : null}
-                </button>
+                </Button>
               );
             })
           )}
@@ -222,22 +230,22 @@ function ConnectionDetail({
     return (
       <div className="pane pane--scroll" style={{ flex: 1 }}>
         <p className="view-title">Connections</p>
-        <div className="card" style={{ maxWidth: '72ch' }}>
+        <Card className="card" style={{ maxWidth: '72ch' }}>
           <p style={{ margin: 0, color: 'var(--text-secondary)' }}>
             A connection records where a directory is and how to bind to it. The secret itself is
             held by the platform credential store, never in the connection file.
           </p>
           <div className="actions">
-            <button type="button" className="button button--primary" onClick={onNew}>
+            <Button type="button" variant="default" onClick={onNew}>
               New connection
-            </button>
+            </Button>
           </div>
-        </div>
+        </Card>
         {error ? (
-          <div className="strip strip--danger">
+          <Alert className="strip strip--danger">
             <span className="strip__title">Failed</span>
             <span className="mono">{error}</span>
-          </div>
+          </Alert>
         ) : null}
       </div>
     );
@@ -256,43 +264,38 @@ function ConnectionDetail({
         <div className="actions">
           {connected ? (
             <>
-              <button type="button" className="button" onClick={onBrowse}>
+              <Button type="button" variant="outline" onClick={onBrowse}>
                 Browse
-              </button>
-              <button type="button" className="button" onClick={onDisconnect} disabled={busy}>
+              </Button>
+              <Button type="button" variant="outline" onClick={onDisconnect} disabled={busy}>
                 Disconnect
-              </button>
+              </Button>
             </>
           ) : (
-            <button
+            <Button
               type="button"
-              className="button button--primary"
+              variant="default"
               onClick={onConnect}
               disabled={busy || state === 'connecting'}
             >
               {busy || state === 'connecting' ? 'Connecting…' : 'Connect'}
-            </button>
+            </Button>
           )}
-          <button
-            type="button"
-            className="button button--danger"
-            onClick={onDelete}
-            disabled={busy}
-          >
+          <Button type="button" variant="destructive" onClick={onDelete} disabled={busy}>
             Delete
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="pane pane--scroll" style={{ flex: 1 }}>
-        <div className="card card--tight" style={{ maxWidth: '72ch' }}>
+        <Card className="card card--tight" style={{ maxWidth: '72ch' }}>
           <span className="card__label">Connection</span>
           <Fact label="State" value={state} />
           <Fact label="Host" value={`${profile.host}:${profile.port}`} />
           <Fact label="Encryption" value={profile.encryption} />
           <Fact label="Mode" value={profile.readOnly ? 'read-only' : 'read / write'} />
           {profile.tags?.length ? <Fact label="Tags" value={profile.tags.join(', ')} /> : null}
-        </div>
+        </Card>
 
         {/* The server's own words about a failure, not a paraphrase. */}
         {message ? (
@@ -303,17 +306,17 @@ function ConnectionDetail({
         ) : null}
 
         {error ? (
-          <div className="strip strip--danger" style={{ maxWidth: '72ch' }}>
+          <Alert className="strip strip--danger" style={{ maxWidth: '72ch' }}>
             <span className="strip__title">Failed</span>
             <span className="mono">{error}</span>
-          </div>
+          </Alert>
         ) : null}
 
         {connected ? (
-          <div className="strip strip--success" style={{ maxWidth: '72ch' }}>
+          <Alert className="strip strip--success" style={{ maxWidth: '72ch' }}>
             <span className="strip__title">Open</span>
             <span>The DIT browser can read through this connection now.</span>
-          </div>
+          </Alert>
         ) : null}
       </div>
     </>
@@ -322,9 +325,9 @@ function ConnectionDetail({
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
-    <div className="field-row">
+    <Field orientation="horizontal" className="field-row">
       <span className="field-row__label">{label}</span>
       <span className="mono">{value}</span>
-    </div>
+    </Field>
   );
 }

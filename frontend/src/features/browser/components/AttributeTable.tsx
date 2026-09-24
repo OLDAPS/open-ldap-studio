@@ -1,3 +1,7 @@
+import { Alert } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 /**
  * The attribute table (screen 1b, Attributes tab).
  *
@@ -35,22 +39,16 @@ export function AttributeTable({
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
 
   const attributes = entry?.attributes ?? [];
-  const hiddenOperational = showOperational
-    ? 0
-    : attributes.filter((a) => a.isOperational).length;
+  const hiddenOperational = showOperational ? 0 : attributes.filter((a) => a.isOperational).length;
   const visible = showOperational ? attributes : attributes.filter((a) => !a.isOperational);
 
   return (
     <>
       <div className="toolbar">
-        <label className="field-group" style={{ flex: 'none' }}>
-          <input
-            type="checkbox"
-            checked={showOperational}
-            onChange={(e) => onShowOperational(e.target.checked)}
-          />
+        <Label className="field-group" style={{ flex: 'none' }}>
+          <Checkbox checked={showOperational} onCheckedChange={onShowOperational} />
           <span>Operational attributes</span>
-        </label>
+        </Label>
         <span className="toolbar__spacer" />
         <span className="dim mono">
           {loading ? 'reading…' : `${visible.length} attribute${visible.length === 1 ? '' : 's'}`}
@@ -95,10 +93,10 @@ export function AttributeTable({
         ) : null}
 
         {error ? (
-          <div className="strip strip--danger" style={{ margin: 'var(--space-3)' }}>
+          <Alert className="strip strip--danger" style={{ margin: 'var(--space-3)' }}>
             <span className="strip__title">Could not read the entry</span>
             <span className="mono">{error}</span>
-          </div>
+          </Alert>
         ) : null}
 
         {!loading && !error && !entry ? (
@@ -157,9 +155,10 @@ function AttributeRow({
           );
         })}
         {hidden > 0 ? (
-          <button
+          <Button
             type="button"
-            className="button button--quiet"
+            variant="ghost"
+            size="xs"
             style={{ padding: 0, color: 'var(--text-link)' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -167,12 +166,13 @@ function AttributeRow({
             }}
           >
             +{hidden} more
-          </button>
+          </Button>
         ) : null}
         {expanded && values.length > FOLD_AFTER ? (
-          <button
+          <Button
             type="button"
-            className="button button--quiet"
+            variant="ghost"
+            size="xs"
             style={{ padding: 0, color: 'var(--text-link)' }}
             onClick={(e) => {
               e.stopPropagation();
@@ -180,7 +180,7 @@ function AttributeRow({
             }}
           >
             show fewer
-          </button>
+          </Button>
         ) : null}
       </div>
       <div className="dim">{attribute.isOperational ? 'op' : '—'}</div>

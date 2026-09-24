@@ -1,3 +1,9 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 /**
  * Screen 3a — Appearance: colours, fonts, sizes.
  *
@@ -32,27 +38,25 @@ export function AppearancePane() {
 
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Colours</span>
 
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Theme</span>
-          <span className="tag-set">
+          <ToggleGroup
+            className="tag-set"
+            value={[theme]}
+            onValueChange={(value) => value[0] && setTheme(value[0] as Theme)}
+          >
             {THEMES.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className="tag"
-                data-selected={theme === id || undefined}
-                onClick={() => setTheme(id)}
-              >
+              <ToggleGroupItem key={id} value={id} className="tag">
                 {label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </span>
-        </div>
+          </ToggleGroup>
+        </Field>
 
-        <div className="field-row">
+        <Field orientation="horizontal" className="field-row">
           <span className="field-row__label">Accent</span>
           <span className="field-group">
             <span
@@ -77,21 +81,21 @@ export function AppearancePane() {
             />
             <span className="dim">accent and its quiet pair, used for selection and focus</span>
           </span>
-        </div>
+        </Field>
 
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-syntax">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-syntax">
             LDIF syntax colours
-          </label>
+          </FieldLabel>
           <span id="pref-syntax" className="field field--static">
             dn · attribute · value · changetype · comment · error
           </span>
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             Edit tokens…
-          </button>
-        </div>
+          </Button>
+        </Field>
 
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Diff highlight</span>
           <span className="tag-set">
             <span
@@ -114,64 +118,62 @@ export function AppearancePane() {
             </span>
             <span className="dim">paired shape with colour, never colour alone</span>
           </span>
-        </div>
-      </div>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Fonts</span>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-ui-font">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-ui-font">
             Interface font
-          </label>
-          <select id="pref-ui-font" className="field" defaultValue="system">
+          </FieldLabel>
+          <NativeSelect id="pref-ui-font" className="field" defaultValue="system">
             <option value="system">System UI</option>
-          </select>
-          <input
+          </NativeSelect>
+          <Input
             className="field"
             defaultValue="14 px"
             aria-label="Interface font size"
             style={{ width: 76, flex: 'none' }}
           />
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-mono-font">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-mono-font">
             Monospace font
-          </label>
-          <select id="pref-mono-font" className="field" defaultValue="system">
+          </FieldLabel>
+          <NativeSelect id="pref-mono-font" className="field" defaultValue="system">
             <option value="system">System monospace</option>
-          </select>
-          <input
+          </NativeSelect>
+          <Input
             className="field"
             defaultValue="12 px"
             aria-label="Monospace font size"
             style={{ width: 76, flex: 'none' }}
           />
-        </div>
-      </div>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Sizes &amp; density</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Row density</span>
-          <span className="tag-set">
+          <ToggleGroup
+            className="tag-set"
+            value={[density]}
+            onValueChange={(value) => value[0] && setDensity(value[0] as Density)}
+          >
             {DENSITIES.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                className="tag"
-                data-selected={density === id || undefined}
-                onClick={() => setDensity(id)}
-              >
+              <ToggleGroupItem key={id} value={id} className="tag">
                 {label}
-              </button>
+              </ToggleGroupItem>
             ))}
-          </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-truncate">
+          </ToggleGroup>
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-truncate">
             Truncate values at
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-truncate"
             className="field"
             type="number"
@@ -179,8 +181,8 @@ export function AppearancePane() {
             style={{ width: 90, flex: 'none' }}
           />
           <span className="dim">characters · the full value is always in the editor</span>
-        </div>
-      </div>
+        </Field>
+      </Card>
     </>
   );
 }

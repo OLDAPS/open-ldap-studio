@@ -1,3 +1,11 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
+import { Label } from '@/components/ui/label';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 /**
  * Screen 1a — the four-step connection wizard: Network → Authentication →
  * Browser options → Edit options.
@@ -110,7 +118,9 @@ export function ConnectionWizard({
         <div className="wizard">
           <nav className="wizard__steps" aria-label="Wizard steps">
             {STEPS.map((label, index) => (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
                 key={label}
                 type="button"
                 className="wizard__step"
@@ -119,12 +129,12 @@ export function ConnectionWizard({
                 onClick={() => setStep(index)}
               >
                 {index + 1} · {label}
-              </button>
+              </Button>
             ))}
             <TestSummary result={test} busy={testing} />
           </nav>
 
-          <div className="card wizard__body">
+          <Card className="card wizard__body">
             {step === 0 ? (
               <NetworkStep
                 draft={draft}
@@ -153,20 +163,20 @@ export function ConnectionWizard({
             {step === 3 ? <EditOptionsStep draft={draft} patch={patch} /> : null}
 
             {error ? (
-              <div className="strip strip--danger">
+              <Alert className="strip strip--danger">
                 <span className="strip__title">Failed</span>
                 <span className="mono">{error}</span>
-              </div>
+              </Alert>
             ) : null}
 
             {!isEmbedded() ? (
-              <div className="strip strip--warning">
+              <Alert className="strip strip--warning">
                 <span className="strip__title">No backend</span>
                 <span>
                   This interface is running outside the desktop shell, so nothing can be tested or
                   saved. Start it with <span className="mono">wails dev</span>.
                 </span>
-              </div>
+              </Alert>
             ) : null}
 
             <div className="actions actions--end" style={{ marginTop: 'auto' }}>
@@ -175,35 +185,35 @@ export function ConnectionWizard({
                   Still needs {problems.join(', ')}.
                 </span>
               ) : null}
-              <button type="button" className="button" onClick={onClose} disabled={saving}>
+              <Button type="button" variant="outline" onClick={onClose} disabled={saving}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="button"
+                variant="outline"
                 disabled={step === 0 || saving}
                 onClick={() => setStep((s) => Math.max(0, s - 1))}
               >
                 Back
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="button"
+                variant="outline"
                 disabled={step === STEPS.length - 1 || saving}
                 onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
               >
                 Next
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
-                className="button button--primary"
+                variant="default"
                 disabled={!canFinish}
                 onClick={() => void finish()}
               >
                 {saving ? 'Saving…' : 'Finish'}
-              </button>
+              </Button>
             </div>
-          </div>
+          </Card>
         </div>
       </div>
     </>
@@ -237,15 +247,15 @@ function TestSummary({ result, busy }: { result?: TestResult; busy: boolean }) {
 
   if (!result.reachable) {
     return (
-      <div className="strip strip--danger" style={{ marginTop: 'auto' }}>
+      <Alert className="strip strip--danger" style={{ marginTop: 'auto' }}>
         <span className="strip__title">Unreachable</span>
         <span className="mono">{result.message}</span>
-      </div>
+      </Alert>
     );
   }
 
   return (
-    <div className="card card--tight" style={{ marginTop: 'auto' }}>
+    <Card className="card card--tight" style={{ marginTop: 'auto' }}>
       <span className="card__label">Server</span>
       <div className="mono" style={{ color: 'var(--success)' }}>
         ✓ reachable{result.encrypted ? ' · encrypted' : ''}
@@ -264,7 +274,7 @@ function TestSummary({ result, busy }: { result?: TestResult; busy: boolean }) {
           ✓ bound as {result.boundDn}
         </div>
       ) : null}
-    </div>
+    </Card>
   );
 }
 
@@ -290,34 +300,34 @@ function NetworkStep({
     <>
       <span className="card__label">Network</span>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-name">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-name">
           Connection name
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-name"
           className="field"
           placeholder={draft.host || 'local-dev'}
           value={draft.name}
           onChange={(e) => patch({ name: e.target.value })}
         />
-      </div>
+      </Field>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-host">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-host">
           Hostname
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-host"
           className="field"
           placeholder="localhost"
           value={draft.host}
           onChange={(e) => patch({ host: e.target.value })}
         />
-        <label className="field-row__label field-row__label--auto" htmlFor="conn-port">
+        <FieldLabel className="field-row__label field-row__label--auto" htmlFor="conn-port">
           Port
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-port"
           className="field"
           /*
@@ -334,13 +344,13 @@ function NetworkStep({
           onChange={(e) => onPortChange(e.target.value.replace(/\D/g, ''))}
           style={{ width: 80, flex: 'none' }}
         />
-      </div>
+      </Field>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-encryption">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-encryption">
           Encryption
-        </label>
-        <select
+        </FieldLabel>
+        <NativeSelect
           id="conn-encryption"
           className="field"
           value={draft.encryption}
@@ -349,49 +359,47 @@ function NetworkStep({
           <option value="none">No encryption</option>
           <option value="startTLS">StartTLS</option>
           <option value="ldaps">LDAPS</option>
-        </select>
-      </div>
+        </NativeSelect>
+      </Field>
 
       {draft.encryption === 'none' ? (
-        <div className="strip strip--warning">
+        <Alert className="strip strip--warning">
           <span className="strip__title">Unencrypted</span>
           <span>
             Everything on this connection — the bind password included — crosses the network in the
             clear.
           </span>
-        </div>
+        </Alert>
       ) : (
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Certificate</span>
-          <label className="field-group" style={{ flex: 'none' }}>
-            <input
-              type="checkbox"
+          <Label className="field-group" style={{ flex: 'none' }}>
+            <Checkbox
               checked={draft.verifyCertificate}
-              onChange={(e) => patch({ verifyCertificate: e.target.checked })}
+              onCheckedChange={(checked) => patch({ verifyCertificate: checked })}
             />
             <span>Verify chain</span>
-          </label>
-          <label className="field-group" style={{ flex: 'none' }}>
-            <input
-              type="checkbox"
+          </Label>
+          <Label className="field-group" style={{ flex: 'none' }}>
+            <Checkbox
               checked={draft.verifyHostname}
-              onChange={(e) => patch({ verifyHostname: e.target.checked })}
+              onCheckedChange={(checked) => patch({ verifyHostname: checked })}
             />
             <span>Verify hostname</span>
-          </label>
+          </Label>
           {!draft.verifyCertificate || !draft.verifyHostname ? (
             <span className="dim">
               Turning verification off is remembered and badged for as long as the connection is
               open.
             </span>
           ) : null}
-        </div>
+        </Field>
       )}
 
       <div className="actions">
-        <button type="button" className="button" onClick={onCheck} disabled={busy || !draft.host}>
+        <Button type="button" variant="outline" onClick={onCheck} disabled={busy || !draft.host}>
           {busy ? 'Checking…' : 'Check network parameter'}
-        </button>
+        </Button>
         <span className="dim">Opens a connection and reads the root DSE. Saves nothing.</span>
       </div>
     </>
@@ -403,24 +411,24 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
     <>
       <span className="card__label">Browser options</span>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-base">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-base">
           Base DN
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-base"
           className="field field--mono"
           placeholder="read from the root DSE"
           value={draft.baseDn}
           onChange={(e) => patch({ baseDn: e.target.value })}
         />
-      </div>
+      </Field>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-page">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-page">
           Page size
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-page"
           className="field"
           inputMode="numeric"
@@ -428,10 +436,10 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
           onChange={(e) => patch({ pageSize: e.target.value.replace(/\D/g, '') })}
           style={{ width: 90, flex: 'none' }}
         />
-        <label className="field-row__label field-row__label--auto" htmlFor="conn-size">
+        <FieldLabel className="field-row__label field-row__label--auto" htmlFor="conn-size">
           Size limit
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-size"
           className="field"
           inputMode="numeric"
@@ -439,10 +447,10 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
           onChange={(e) => patch({ sizeLimit: e.target.value.replace(/\D/g, '') })}
           style={{ width: 90, flex: 'none' }}
         />
-        <label className="field-row__label field-row__label--auto" htmlFor="conn-time">
+        <FieldLabel className="field-row__label field-row__label--auto" htmlFor="conn-time">
           Time limit (s)
-        </label>
-        <input
+        </FieldLabel>
+        <Input
           id="conn-time"
           className="field"
           inputMode="numeric"
@@ -450,13 +458,13 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
           onChange={(e) => patch({ timeLimit: e.target.value.replace(/\D/g, '') })}
           style={{ width: 90, flex: 'none' }}
         />
-      </div>
+      </Field>
 
-      <div className="field-row">
-        <label className="field-row__label" htmlFor="conn-aliases">
+      <Field orientation="horizontal" className="field-row">
+        <FieldLabel className="field-row__label" htmlFor="conn-aliases">
           Aliases
-        </label>
-        <select
+        </FieldLabel>
+        <NativeSelect
           id="conn-aliases"
           className="field"
           value={draft.aliases}
@@ -466,11 +474,11 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
           <option value="search">dereference when searching</option>
           <option value="find">dereference when finding</option>
           <option value="always">always dereference</option>
-        </select>
-        <label className="field-row__label field-row__label--auto" htmlFor="conn-referrals">
+        </NativeSelect>
+        <FieldLabel className="field-row__label field-row__label--auto" htmlFor="conn-referrals">
           Referrals
-        </label>
-        <select
+        </FieldLabel>
+        <NativeSelect
           id="conn-referrals"
           className="field"
           value={draft.referrals}
@@ -479,8 +487,8 @@ function BrowserOptionsStep({ draft, patch }: StepProps) {
           <option value="follow">follow</option>
           <option value="ignore">ignore</option>
           <option value="ask">ask</option>
-        </select>
-      </div>
+        </NativeSelect>
+      </Field>
     </>
   );
 }
@@ -495,35 +503,33 @@ function EditOptionsStep({ draft, patch }: StepProps) {
     <>
       <span className="card__label">Edit options</span>
 
-      <div className="field-row">
+      <Field orientation="horizontal" className="field-row">
         <span className="field-row__label">Open read-only</span>
-        <label className="field-group">
-          <input
-            type="checkbox"
+        <Label className="field-group">
+          <Checkbox
             style={{ flex: 'none' }}
             checked={draft.readOnly}
-            onChange={(e) => patch({ readOnly: e.target.checked })}
+            onCheckedChange={(checked) => patch({ readOnly: checked })}
           />
           <span className="dim">
             Refused at the changeset boundary, below any check the UI makes.
           </span>
-        </label>
-      </div>
+        </Label>
+      </Field>
 
-      <div className="field-row">
+      <Field orientation="horizontal" className="field-row">
         <span className="field-row__label">Tag as production</span>
-        <label className="field-group">
-          <input
-            type="checkbox"
+        <Label className="field-group">
+          <Checkbox
             style={{ flex: 'none' }}
             checked={draft.production}
-            onChange={(e) => patch({ production: e.target.checked })}
+            onCheckedChange={(checked) => patch({ production: checked })}
           />
           <span className="dim">
             The status bar carries the tag and every write confirms first.
           </span>
-        </label>
-      </div>
+        </Label>
+      </Field>
 
       <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
         Auto-save on focus loss is deliberately not offered: a directory write should be an act, not

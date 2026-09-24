@@ -1,3 +1,5 @@
+import { Field } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
 /**
  * The schema element view (screen 1d, document area).
  *
@@ -47,33 +49,37 @@ export function SchemaBrowser() {
       </div>
 
       <div className="split" style={{ gap: 'var(--space-4)' }}>
-        <div className="card" style={{ flex: 1, minWidth: 0 }}>
+        <Card className="card" style={{ flex: 1, minWidth: 0 }}>
           <span className="card__label">Definition</span>
-          <div className="field-row">
+          <Field orientation="horizontal" className="field-row">
             <span className="field-row__label">Superior</span>
             <span className="mono">—</span>
-          </div>
-          <div className="field-row">
+          </Field>
+          <Field orientation="horizontal" className="field-row">
             <span className="field-row__label">Must contain</span>
             <span className="mono">—</span>
-          </div>
-          <div className="field-row" style={{ alignItems: 'flex-start' }}>
+          </Field>
+          <Field
+            orientation="horizontal"
+            className="field-row"
+            style={{ alignItems: 'flex-start' }}
+          >
             <span className="field-row__label">May contain</span>
             <span className="mono">—</span>
-          </div>
+          </Field>
           <HierarchyDiagram />
-        </div>
+        </Card>
 
         <div className="inspector inspector--wide" style={{ border: 0, background: 'none' }}>
           <div className="inspector__body" style={{ padding: 0 }}>
-            <div className="card card--tight">
+            <Card className="card card--tight">
               <span className="card__label">Raw definition</span>
               <code className="mono dim">—</code>
-            </div>
-            <div className="card card--tight">
+            </Card>
+            <Card className="card card--tight">
               <span className="card__label">Used by</span>
               <UsedBySearch />
-            </div>
+            </Card>
           </div>
         </div>
       </div>

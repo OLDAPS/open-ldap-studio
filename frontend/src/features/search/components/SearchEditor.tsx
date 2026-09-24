@@ -1,3 +1,8 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * The search editor (screen 1c, document area).
  *
@@ -19,63 +24,68 @@ export function SearchEditor() {
   return (
     <>
       <div className="pane" style={{ flex: 'none' }}>
-        <div className="card card--tight">
-          <div className="field-row">
-            <label className="field-row__label" htmlFor="search-base">
+        <Card className="card card--tight">
+          <Field orientation="horizontal" className="field-row">
+            <FieldLabel className="field-row__label" htmlFor="search-base">
               Search base
-            </label>
-            <input id="search-base" className="field field--mono" placeholder="dc=example,dc=com" />
-            <button type="button" className="button">
+            </FieldLabel>
+            <Input id="search-base" className="field field--mono" placeholder="dc=example,dc=com" />
+            <Button type="button" variant="outline">
               Browse…
-            </button>
-          </div>
+            </Button>
+          </Field>
 
-          <div className="field-row">
-            <label className="field-row__label" htmlFor="search-filter">
+          <Field orientation="horizontal" className="field-row">
+            <FieldLabel className="field-row__label" htmlFor="search-filter">
               Filter
-            </label>
-            <input
+            </FieldLabel>
+            <Input
               id="search-filter"
               className="field field--mono"
               value={filter}
               onChange={(e) => setFilter(e.target.value)}
               spellCheck={false}
             />
-            <button type="button" className="button">
+            <Button type="button" variant="outline">
               Builder
-            </button>
-            <button type="button" className="button">
+            </Button>
+            <Button type="button" variant="outline">
               Validate
-            </button>
-          </div>
+            </Button>
+          </Field>
 
-          <div className="field-row">
-            <label className="field-row__label" htmlFor="search-attrs">
+          <Field orientation="horizontal" className="field-row">
+            <FieldLabel className="field-row__label" htmlFor="search-attrs">
               Returning attrs
-            </label>
-            <input id="search-attrs" className="field field--mono" placeholder="uid, cn, mail, +" />
-          </div>
+            </FieldLabel>
+            <Input id="search-attrs" className="field field--mono" placeholder="uid, cn, mail, +" />
+          </Field>
 
-          <div className="field-row field-row--wrap">
+          <Field orientation="horizontal" className="field-row field-row--wrap">
             <span className="field-row__label">Scope / limits</span>
-            <select className="field" defaultValue="sub" aria-label="Scope" style={{ width: 120 }}>
+            <NativeSelect
+              className="field"
+              defaultValue="sub"
+              aria-label="Scope"
+              style={{ width: 120 }}
+            >
               <option value="base">base</option>
               <option value="one">one level</option>
               <option value="sub">subtree</option>
-            </select>
-            <input
+            </NativeSelect>
+            <Input
               className="field"
               aria-label="Size limit"
               defaultValue="count 1000"
               style={{ width: 110 }}
             />
-            <input
+            <Input
               className="field"
               aria-label="Time limit"
               defaultValue="time 10 s"
               style={{ width: 100 }}
             />
-            <select
+            <NativeSelect
               className="field"
               defaultValue="find"
               aria-label="Aliases"
@@ -85,8 +95,8 @@ export function SearchEditor() {
               <option value="find">aliases: finding</option>
               <option value="search">aliases: searching</option>
               <option value="always">aliases: always</option>
-            </select>
-            <select
+            </NativeSelect>
+            <NativeSelect
               className="field"
               defaultValue="follow"
               aria-label="Referrals"
@@ -95,18 +105,18 @@ export function SearchEditor() {
               <option value="follow">referrals: follow</option>
               <option value="ignore">referrals: ignore</option>
               <option value="ask">referrals: ask</option>
-            </select>
+            </NativeSelect>
 
             <span className="actions actions--end">
-              <button type="button" className="button">
+              <Button type="button" variant="outline">
                 Save search
-              </button>
-              <button type="button" className="button button--primary">
+              </Button>
+              <Button type="button" variant="default">
                 Run
-              </button>
+              </Button>
             </span>
-          </div>
-        </div>
+          </Field>
+        </Card>
       </div>
 
       <ResultGrid />

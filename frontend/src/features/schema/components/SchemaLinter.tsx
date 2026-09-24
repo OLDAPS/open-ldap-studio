@@ -1,2 +1,4 @@
 import React from 'react';
-export function SchemaLinter() { return <div>Schema Linter</div>; }
+export function SchemaLinter() {
+  return <div>Schema Linter</div>;
+}

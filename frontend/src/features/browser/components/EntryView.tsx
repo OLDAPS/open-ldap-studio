@@ -1,3 +1,6 @@
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 /**
  * The entry editor (screen 1b, document area).
  *
@@ -50,42 +53,38 @@ export function EntryView() {
         </span>
         <span className="toolbar__spacer" />
         <div className="actions">
-          <button type="button" className="button" disabled={!entry}>
+          <Button type="button" variant="outline" disabled={!entry}>
             New attribute
-          </button>
-          <button type="button" className="button" disabled={!dn || loading} onClick={reload}>
+          </Button>
+          <Button type="button" variant="outline" disabled={!dn || loading} onClick={reload}>
             {loading ? 'Reading…' : 'Refresh'}
-          </button>
-          <button
+          </Button>
+          <Button
             type="button"
-            className="button button--primary"
+            variant="default"
             disabled
             title="Editing reaches the server through preview-then-commit, which is not wired yet"
           >
             Save (⌘S)
-          </button>
+          </Button>
         </div>
       </div>
 
       <div className="split">
-        <div className="split__main">
-          <div className="pane-tabs" role="tablist" aria-label="Entry views">
+        <Tabs
+          className="split__main gap-0"
+          value={tab}
+          onValueChange={(value) => setTab(value as Tab)}
+        >
+          <TabsList className="pane-tabs" variant="line" aria-label="Entry views">
             {TABS.map(([id, label]) => (
-              <button
-                key={id}
-                type="button"
-                role="tab"
-                aria-selected={tab === id}
-                className="pane-tab"
-                data-active={tab === id || undefined}
-                onClick={() => setTab(id)}
-              >
+              <TabsTrigger key={id} value={id} className="pane-tab">
                 {label}
-              </button>
+              </TabsTrigger>
             ))}
-          </div>
+          </TabsList>
 
-          {tab === 'attributes' ? (
+          <TabsContent value="attributes">
             <AttributeTable
               entry={entry}
               loading={loading}
@@ -93,11 +92,13 @@ export function EntryView() {
               showOperational={showOperational}
               onShowOperational={setShowOperational}
             />
-          ) : null}
+          </TabsContent>
 
-          {tab === 'ldif' ? <LdifTab dn={dn} attributes={entry?.attributes} /> : null}
+          <TabsContent value="ldif">
+            <LdifTab dn={dn} attributes={entry?.attributes} />
+          </TabsContent>
 
-          {tab === 'table' ? (
+          <TabsContent value="table">
             <div className="pane" style={{ flex: 1 }}>
               <div className="placeholder" style={{ height: 120 }}>
                 table editor — one row per child entry, columns chosen from the
@@ -105,10 +106,12 @@ export function EntryView() {
                 parent&rsquo;s object classes
               </div>
             </div>
-          ) : null}
+          </TabsContent>
 
-          {tab === 'objectClass' ? <ObjectClassTab attributes={entry?.attributes} /> : null}
-        </div>
+          <TabsContent value="objectClass">
+            <ObjectClassTab attributes={entry?.attributes} />
+          </TabsContent>
+        </Tabs>
 
         <EntryInfoPanel entry={entry} loading={loading} />
       </div>
@@ -169,7 +172,7 @@ function ObjectClassTab({ attributes }: { attributes?: Attribute[] }) {
 
   return (
     <div className="pane" style={{ flex: 1 }}>
-      <div className="card card--tight">
+      <Card className="card card--tight">
         <span className="card__label">Object classes</span>
         {classes.length === 0 ? (
           <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
@@ -184,7 +187,7 @@ function ObjectClassTab({ attributes }: { attributes?: Attribute[] }) {
             ))}
           </div>
         )}
-      </div>
+      </Card>
 
       <div className="placeholder" style={{ height: 110 }}>
         adding or removing an auxiliary class recomputes the must / may set
