@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * The entry-info inspector (screen 1b, right).
  *
@@ -9,7 +10,8 @@ import { displayValue, imageDataUrl } from '../value';
 import type { Attribute, Entry } from '@/bridge/types';
 
 export function EntryInfoPanel({ entry, loading }: { entry?: Entry; loading: boolean }) {
-  const photo = firstValue(entry?.attributes, 'jpegPhoto') ?? firstValue(entry?.attributes, 'photo');
+  const photo =
+    firstValue(entry?.attributes, 'jpegPhoto') ?? firstValue(entry?.attributes, 'photo');
   const photoUrl = photo ? imageDataUrl(photo) : undefined;
 
   const classes = valuesOf(entry?.attributes, 'objectClass');
@@ -52,9 +54,16 @@ export function EntryInfoPanel({ entry, loading }: { entry?: Entry; loading: boo
           </p>
         ) : null}
 
-        <button type="button" className="tag" style={{ alignSelf: 'flex-start' }} disabled={!entry}>
+        <Button
+          variant="outline"
+          size="xs"
+          type="button"
+          className="tag"
+          style={{ alignSelf: 'flex-start' }}
+          disabled={!entry}
+        >
           Show in schema browser
-        </button>
+        </Button>
       </div>
     </aside>
   );

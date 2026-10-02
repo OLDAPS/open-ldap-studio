@@ -69,7 +69,8 @@ function describeBinary(bytes: Uint8Array): string {
 /** Enough magic numbers to name the formats a directory actually stores. */
 function sniff(b: Uint8Array): string | undefined {
   if (b.length >= 3 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff) return 'JPEG';
-  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47) return 'PNG';
+  if (b.length >= 8 && b[0] === 0x89 && b[1] === 0x50 && b[2] === 0x4e && b[3] === 0x47)
+    return 'PNG';
   if (b.length >= 4 && b[0] === 0x47 && b[1] === 0x49 && b[2] === 0x46) return 'GIF';
   // DER: a SEQUENCE, which is what a certificate and most ASN.1 starts with.
   if (b.length >= 2 && b[0] === 0x30 && (b[1] === 0x82 || b[1] === 0x81)) return 'DER';

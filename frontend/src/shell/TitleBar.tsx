@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * The window's own title bar: traffic lights, the menu bar, and a context
  * strip showing what the window is currently pointed at.
@@ -22,19 +23,25 @@ export function TitleBar() {
         className="titlebar__dots"
         style={{ '--wails-draggable': 'no-drag' } as React.CSSProperties}
       >
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           className="titlebar__dot titlebar__dot--close"
           aria-label="Close window"
           onClick={() => windowControls.quit()}
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           className="titlebar__dot titlebar__dot--minimise"
           aria-label="Minimise window"
           onClick={() => windowControls.minimise()}
         />
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           className="titlebar__dot titlebar__dot--maximise"
           aria-label="Maximise window"

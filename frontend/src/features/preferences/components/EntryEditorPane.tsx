@@ -1,3 +1,8 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5b — Entry editor.
  *
@@ -8,88 +13,88 @@
 export function EntryEditorPane() {
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Behaviour</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Default tab</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               attribute table
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               LDIF view
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               last used
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row field-row--wrap">
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Save mode</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               explicit (⌘S)
-            </button>
+            </Button>
           </span>
           <span className="dim">every commit passes through a preview</span>
-        </div>
-        <div className="field-row field-row--wrap">
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Confirm before</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               deleting a value
-            </button>
-            <button type="button" className="tag" data-selected>
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               deleting an attribute
-            </button>
-            <button type="button" className="tag" data-selected>
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               leaving unsaved
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-schema-check">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-schema-check">
             Schema check
-          </label>
-          <select id="pref-schema-check" className="field" defaultValue="typing">
+          </FieldLabel>
+          <NativeSelect id="pref-schema-check" className="field" defaultValue="typing">
             <option value="typing">validate while typing</option>
             <option value="save">on save</option>
             <option value="off">off</option>
-          </select>
-        </div>
-      </div>
+          </NativeSelect>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Table</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Attribute names as</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               short name
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               OID
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               description
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-group">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-group">
             Group rows by
-          </label>
-          <select id="pref-group" className="field" defaultValue="kind">
+          </FieldLabel>
+          <NativeSelect id="pref-group" className="field" defaultValue="kind">
             <option value="kind">must / may / operational</option>
             <option value="alpha">alphabetical</option>
             <option value="class">objectClass</option>
-          </select>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-fold">
+          </NativeSelect>
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-fold">
             Multi-values
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-fold"
             className="field"
             type="number"
@@ -97,22 +102,22 @@ export function EntryEditorPane() {
             style={{ width: 90, flex: 'none' }}
           />
           <span className="dim">shown before &ldquo;+N more&rdquo;</span>
-        </div>
-        <div className="field-row field-row--wrap">
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Copy as</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               LDIF
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               CSV
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               DN only
-            </button>
+            </Button>
           </span>
-        </div>
-      </div>
+        </Field>
+      </Card>
     </>
   );
 }

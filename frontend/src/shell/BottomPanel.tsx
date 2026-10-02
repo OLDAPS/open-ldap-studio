@@ -1,3 +1,15 @@
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty';
 /**
  * The bottom panel: Progress, Modification Logs, Search Logs, Errors, Console.
  *
@@ -41,7 +53,9 @@ export function BottomPanel() {
     <section className="panel" data-open={panelOpen || undefined} aria-label="Progress and logs">
       <div className="panel__tabs" role="tablist">
         {TABS.map((tab) => (
-          <button
+          <Button
+            variant="ghost"
+            size="xs"
             key={tab.id}
             type="button"
             role="tab"
@@ -52,17 +66,19 @@ export function BottomPanel() {
           >
             {tab.label}
             {count(tab.id) ? <span className="panel__count">{count(tab.id)}</span> : null}
-          </button>
+          </Button>
         ))}
         <span className="panel__spacer" />
-        <button
+        <Button
+          variant="ghost"
+          size="icon-sm"
           type="button"
           className="panel__collapse"
           onClick={togglePanel}
           aria-label={panelOpen ? 'Collapse panel' : 'Expand panel'}
         >
           {panelOpen ? '▾' : '▴'}
-        </button>
+        </Button>
       </div>
 
       {panelOpen ? (
@@ -93,55 +109,50 @@ function ProgressList() {
   }
 
   return (
-    <table className="grid">
-      <thead>
-        <tr>
-          <th style={{ width: '30%' }}>Operation</th>
-          <th style={{ width: '40%' }}>Progress</th>
-          <th style={{ width: '20%' }}>State</th>
-          <th style={{ width: '10%' }} />
-        </tr>
-      </thead>
-      <tbody>
+    <Table className="grid">
+      <TableHeader>
+        <TableRow>
+          <TableHead style={{ width: '30%' }}>Operation</TableHead>
+          <TableHead style={{ width: '40%' }}>Progress</TableHead>
+          <TableHead style={{ width: '20%' }}>State</TableHead>
+          <TableHead style={{ width: '10%' }} />
+        </TableRow>
+      </TableHeader>
+      <TableBody>
         {jobs.map((job) => {
           const percent = job.total > 0 ? Math.round((job.done / job.total) * 100) : undefined;
           return (
-            <tr key={job.id}>
-              <td>
+            <TableRow key={job.id}>
+              <TableCell>
                 {job.kind}
-                {job.mode === 'dryRun' ? <span className="badge badge--info">dry run</span> : null}
-              </td>
-              <td>
-                <div className="progress">
-                  <div
-                    className="progress__bar"
-                    style={{ width: percent !== undefined ? `${percent}%` : '100%' }}
-                    data-indeterminate={percent === undefined || undefined}
-                  />
-                </div>
+                {job.mode === 'dryRun' ? <Badge variant="secondary">dry run</Badge> : null}
+              </TableCell>
+              <TableCell>
+                <Progress value={percent ?? null} aria-label={`${job.kind} progress`} />
                 <span className="dim mono">{job.message || job.summary || ''}</span>
-              </td>
-              <td>
-                <span className="badge" data-job-state={job.state}>
+              </TableCell>
+              <TableCell>
+                <Badge variant="outline" data-job-state={job.state}>
                   {job.state}
-                </span>
-              </td>
-              <td>
+                </Badge>
+              </TableCell>
+              <TableCell>
                 {job.state === 'running' ? (
-                  <button
+                  <Button
                     type="button"
-                    className="button button--quiet"
+                    variant="ghost"
+                    size="xs"
                     onClick={() => void bridge.cancel(job.id)}
                   >
                     Cancel
-                  </button>
+                  </Button>
                 ) : null}
-              </td>
-            </tr>
+              </TableCell>
+            </TableRow>
           );
         })}
-      </tbody>
-    </table>
+      </TableBody>
+    </Table>
   );
 }
 
@@ -175,7 +186,7 @@ function ConsoleList() {
     <ul className="notice-list">
       {capabilities.map((c) => (
         <li key={`${c.profileId}-${c.capability}`}>
-          <span className="badge badge--warning">{c.capability}</span>
+          <Badge variant="outline">{c.capability}</Badge>
           <span className="notice-list__message">{c.reason}</span>
         </li>
       ))}
@@ -190,5 +201,11 @@ function ConsoleList() {
 }
 
 function EmptyPanel({ text }: { text: string }) {
-  return <p className="panel__empty dim">{text}</p>;
+  return (
+    <Empty className="panel__empty">
+      <EmptyHeader>
+        <EmptyDescription>{text}</EmptyDescription>
+      </EmptyHeader>
+    </Empty>
+  );
 }

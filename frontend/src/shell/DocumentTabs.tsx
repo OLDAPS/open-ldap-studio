@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Editors are documents, not modals.
  *
@@ -54,7 +55,9 @@ export function DocumentTabs() {
               ●
             </span>
           ) : null}
-          <button
+          <Button
+            variant="ghost"
+            size="icon-sm"
             type="button"
             className="tab__close"
             aria-label={`Close ${tab.title}`}
@@ -64,7 +67,7 @@ export function DocumentTabs() {
             }}
           >
             ×
-          </button>
+          </Button>
         </div>
       ))}
     </div>

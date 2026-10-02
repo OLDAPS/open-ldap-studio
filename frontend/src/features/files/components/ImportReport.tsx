@@ -1,3 +1,5 @@
+import { Card } from '@/components/ui/card';
+import { Alert } from '@/components/ui/alert';
 /**
  * The import report (screen 1e, "Import report" tab; flow 7e terminal state).
  *
@@ -18,7 +20,7 @@ export function ImportReport({
 }) {
   return (
     <div className="pane" style={{ flex: 1 }}>
-      <div className="card card--tight">
+      <Card className="card card--tight">
         <span className="card__label">Result</span>
         <div className="tag-set">
           <span className="tag">{added} added</span>
@@ -28,16 +30,16 @@ export function ImportReport({
             {rejected} rejected
           </span>
         </div>
-      </div>
+      </Card>
 
       {rejected > 0 ? (
-        <div className="strip strip--warning">
+        <Alert className="strip strip--warning">
           <span className="strip__title">Rejects saved</span>
           <span>
             The failed records were written to a sibling .ldif with their result codes, so the run
             can be repaired and repeated.
           </span>
-        </div>
+        </Alert>
       ) : null}
     </div>
   );

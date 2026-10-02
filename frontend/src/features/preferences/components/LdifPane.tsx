@@ -1,3 +1,8 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5d — LDIF & text editors.
  *
@@ -7,90 +12,90 @@
 export function LdifPane() {
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Formatting</span>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-wrap">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-wrap">
             Wrap lines at
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-wrap"
             className="field"
             type="number"
             defaultValue={78}
             style={{ width: 90, flex: 'none' }}
           />
-          <label className="field-row__label field-row__label--auto" htmlFor="pref-b64">
+          <FieldLabel className="field-row__label field-row__label--auto" htmlFor="pref-b64">
             Fold base64 at
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-b64"
             className="field"
             type="number"
             defaultValue={76}
             style={{ width: 90, flex: 'none' }}
           />
-        </div>
-        <div className="field-row field-row--wrap">
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Show</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               line numbers
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               whitespace
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               record folding
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-encoding">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-encoding">
             Encoding · EOL
-          </label>
-          <select id="pref-encoding" className="field" defaultValue="utf8">
+          </FieldLabel>
+          <NativeSelect id="pref-encoding" className="field" defaultValue="utf8">
             <option value="utf8">UTF-8</option>
-          </select>
-          <select className="field" defaultValue="lf" aria-label="Line ending">
+          </NativeSelect>
+          <NativeSelect className="field" defaultValue="lf" aria-label="Line ending">
             <option value="lf">LF</option>
             <option value="crlf">CRLF</option>
-          </select>
-        </div>
-      </div>
+          </NativeSelect>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Validation &amp; syntax</span>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-validate">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-validate">
             Validate
-          </label>
-          <select id="pref-validate" className="field" defaultValue="typing">
+          </FieldLabel>
+          <NativeSelect id="pref-validate" className="field" defaultValue="typing">
             <option value="typing">while typing</option>
             <option value="save">on save</option>
             <option value="manual">manual</option>
-          </select>
-        </div>
-        <div className="field-row field-row--wrap">
+          </NativeSelect>
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Flag</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               unknown attributes
-            </button>
-            <button type="button" className="tag" data-selected>
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               schema violations
-            </button>
-            <button type="button" className="tag" data-selected>
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               missing DNs
-            </button>
+            </Button>
           </span>
-        </div>
+        </Field>
         <div className="placeholder" style={{ height: 56 }}>
           preview strip of a coloured LDIF record
           <br />
           with a warning gutter marker
         </div>
-      </div>
+      </Card>
     </>
   );
 }

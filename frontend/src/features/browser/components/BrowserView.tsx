@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Screen 1b — DIT browser and entry editor: the primary workspace.
  *
@@ -21,20 +22,15 @@ export function BrowserView() {
         <div className="sidebar__header">
           <span>DIT · {label}</span>
           <span className="sidebar__actions mono">
-            <button type="button" className="button button--quiet" title="Find" aria-label="Find">
+            <Button type="button" variant="ghost" size="xs" title="Find" aria-label="Find">
               ⌕
-            </button>
-            <button
-              type="button"
-              className="button button--quiet"
-              title="Refresh"
-              aria-label="Refresh"
-            >
+            </Button>
+            <Button type="button" variant="ghost" size="xs" title="Refresh" aria-label="Refresh">
               ⟳
-            </button>
-            <button type="button" className="button button--quiet" title="More" aria-label="More">
+            </Button>
+            <Button type="button" variant="ghost" size="xs" title="More" aria-label="More">
               ⋯
-            </button>
+            </Button>
           </span>
         </div>
         <DitTree />

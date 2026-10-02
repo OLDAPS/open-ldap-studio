@@ -1,3 +1,6 @@
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 /**
  * The LDIF editor (screen 1e, document area).
  *
@@ -29,7 +32,7 @@ export function LdifEditor() {
   const records = lines.filter((line) => line.startsWith('dn:')).length;
 
   return (
-    <>
+    <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="gap-0">
       <div className="toolbar">
         <span className="mono">
           {records === 0
@@ -38,41 +41,33 @@ export function LdifEditor() {
         </span>
         <span className="toolbar__spacer" />
         <div className="actions">
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             Format
-          </button>
-          <button type="button" className="button">
+          </Button>
+          <Button type="button" variant="outline">
             Validate
-          </button>
-          <button type="button" className="button">
+          </Button>
+          <Button type="button" variant="outline">
             Dry run
-          </button>
-          <button type="button" className="button button--primary" disabled={!target}>
+          </Button>
+          <Button type="button" variant="default" disabled={!target}>
             {target ? `Execute on ${target}` : 'Execute'}
-          </button>
+          </Button>
         </div>
       </div>
 
-      <div className="pane-tabs" role="tablist" aria-label="LDIF views">
+      <TabsList className="pane-tabs" variant="line" aria-label="LDIF views">
         {TABS.map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={tab === id}
-            className="pane-tab"
-            data-active={tab === id || undefined}
-            onClick={() => setTab(id)}
-          >
+          <TabsTrigger key={id} value={id} className="pane-tab">
             {label}
-          </button>
+          </TabsTrigger>
         ))}
-      </div>
+      </TabsList>
 
       <div className="split">
         <div className="split__main" style={{ borderRight: '1px solid var(--border-subtle)' }}>
-          {tab === 'source' ? (
-            <textarea
+          <TabsContent value="source">
+            <Textarea
               className="source"
               value={text}
               spellCheck={false}
@@ -87,9 +82,9 @@ export function LdifEditor() {
               }}
               onChange={(event) => setText(event.target.value)}
             />
-          ) : null}
+          </TabsContent>
 
-          {tab === 'diff' ? (
+          <TabsContent value="diff">
             <div className="pane" style={{ flex: 1 }}>
               <div className="placeholder" style={{ height: 140 }}>
                 before / after attribute diff for each record,
@@ -97,9 +92,9 @@ export function LdifEditor() {
                 read from the target connection without writing to it
               </div>
             </div>
-          ) : null}
+          </TabsContent>
 
-          {tab === 'report' ? (
+          <TabsContent value="report">
             <div className="pane" style={{ flex: 1 }}>
               <div className="placeholder" style={{ height: 140 }}>
                 the last run&rsquo;s report — counts per outcome, and the rejects
@@ -107,7 +102,7 @@ export function LdifEditor() {
                 written to a sibling .ldif so the run can be repaired and repeated
               </div>
             </div>
-          ) : null}
+          </TabsContent>
 
           <div className="pane" style={{ flex: 'none' }}>
             <div className="placeholder" style={{ height: 56 }}>
@@ -120,6 +115,6 @@ export function LdifEditor() {
 
         <DryRunPanel />
       </div>
-    </>
+    </Tabs>
   );
 }

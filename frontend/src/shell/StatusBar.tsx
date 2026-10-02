@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 /**
  * The status bar, visible on every screen.
  *
@@ -58,42 +60,36 @@ export function StatusBar({ counts }: { counts?: StatusCounts }) {
       ) : null}
 
       {connection?.readOnly ? (
-        <span
-          className="badge badge--info"
-          title="No change can be committed through this connection"
-        >
+        <Badge variant="secondary" title="No change can be committed through this connection">
           read-only
-        </span>
+        </Badge>
       ) : null}
 
       {connection?.production ? (
-        <span className="badge badge--warning" title="This connection is tagged production">
+        <Badge variant="outline" title="This connection is tagged production">
           production
-        </span>
+        </Badge>
       ) : null}
 
       {connection?.state === 'connected' && !connection.encrypted ? (
-        <span className="badge badge--danger" title="This connection is not encrypted">
+        <Badge variant="destructive" title="This connection is not encrypted">
           cleartext
-        </span>
+        </Badge>
       ) : null}
 
       {connection?.state === 'connected' && connection.encrypted && !connection.tlsVerified ? (
-        <span
-          className="badge badge--warning"
-          title="Certificate verification is off for this connection"
-        >
+        <Badge variant="outline" title="Certificate verification is off for this connection">
           TLS unverified
-        </span>
+        </Badge>
       ) : null}
 
       {connection?.writesRequireConfirmation ? (
-        <span
-          className="badge badge--warning"
+        <Badge
+          variant="outline"
           title="The session was re-established; the next write is confirmed afresh"
         >
           reconnected
-        </span>
+        </Badge>
       ) : null}
 
       <span className="statusbar__spacer" />
@@ -114,15 +110,21 @@ export function StatusBar({ counts }: { counts?: StatusCounts }) {
       ) : null}
 
       {counts?.limit ? (
-        <span className="badge badge--warning" title="A server limit is in force">
+        <Badge variant="outline" title="A server limit is in force">
           {counts.limit}
-        </span>
+        </Badge>
       ) : null}
 
       {runningJobs.length > 0 ? (
-        <button type="button" className="statusbar__jobs" onClick={togglePanel}>
+        <Button
+          variant="ghost"
+          size="xs"
+          type="button"
+          className="statusbar__jobs"
+          onClick={togglePanel}
+        >
           {runningJobs.length} running
-        </button>
+        </Button>
       ) : null}
     </footer>
   );

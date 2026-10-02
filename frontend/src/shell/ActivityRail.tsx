@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * The activity rail: six perspectives.
  *
@@ -28,7 +29,9 @@ export function ActivityRail() {
   const setPerspective = useSession((s) => s.setPerspective);
 
   const button = (entry: RailEntry) => (
-    <button
+    <Button
+      variant="ghost"
+      size="xs"
       key={entry.id}
       type="button"
       className="rail__icon"
@@ -39,7 +42,7 @@ export function ActivityRail() {
       onClick={() => setPerspective(entry.id)}
     >
       <span aria-hidden="true">{entry.glyph}</span>
-    </button>
+    </Button>
   );
 
   return (

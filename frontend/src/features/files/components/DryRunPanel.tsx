@@ -1,3 +1,5 @@
+import { Card } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 /**
  * The dry-run result panel (screen 1e, right).
  *
@@ -23,7 +25,7 @@ export function DryRunPanel() {
           <span className="tag">{count('error')} blocked</span>
         </div>
 
-        <div className="card card--tight">
+        <Card className="card card--tight">
           {results.length === 0 ? (
             <span className="dim" style={{ fontSize: 'var(--text-caption)' }}>
               Nothing has been dry-run yet. A dry run reads the target and reports what each record
@@ -37,7 +39,7 @@ export function DryRunPanel() {
               </div>
             ))
           )}
-        </div>
+        </Card>
 
         <div className="placeholder" style={{ flex: 1, minHeight: 90 }}>
           before / after attribute diff for the
@@ -46,12 +48,12 @@ export function DryRunPanel() {
         </div>
 
         <div className="actions">
-          <button type="button" className="button" disabled={results.length === 0}>
+          <Button type="button" variant="outline" disabled={results.length === 0}>
             Fix &amp; re-run
-          </button>
-          <button type="button" className="button" disabled={results.length === 0}>
+          </Button>
+          <Button type="button" variant="outline" disabled={results.length === 0}>
             Save report
-          </button>
+          </Button>
         </div>
       </div>
     </aside>

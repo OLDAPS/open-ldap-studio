@@ -1,3 +1,7 @@
+import { Field } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5g — Keyboard shortcuts.
  *
@@ -22,18 +26,18 @@ export function ShortcutsPane() {
 
   return (
     <>
-      <div className="field-row field-row--wrap">
+      <Field orientation="horizontal" className="field-row field-row--wrap">
         <span className="field-row__label">Keymap preset</span>
         <span className="tag-set">
-          <button type="button" className="tag" data-selected>
+          <Button variant="outline" size="xs" type="button" className="tag" data-selected>
             Default
-          </button>
-          <button type="button" className="tag">
+          </Button>
+          <Button variant="outline" size="xs" type="button" className="tag">
             Custom
-          </button>
+          </Button>
         </span>
         <span className="actions actions--end">
-          <input
+          <Input
             className="field"
             type="search"
             value={filter}
@@ -42,13 +46,13 @@ export function ShortcutsPane() {
             onChange={(e) => setFilter(e.target.value)}
             style={{ width: 190 }}
           />
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             Export
-          </button>
+          </Button>
         </span>
-      </div>
+      </Field>
 
-      <div className="card">
+      <Card className="card">
         <div className="dgrid">
           <div className="dgrid__head" style={{ '--cols': COLS } as React.CSSProperties}>
             <div>Command</div>
@@ -77,7 +81,7 @@ export function ShortcutsPane() {
             </p>
           ) : null}
         </div>
-      </div>
+      </Card>
 
       <div className="placeholder" style={{ height: 52 }}>
         recording field: press the new combination —

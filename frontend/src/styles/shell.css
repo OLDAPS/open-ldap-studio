@@ -213,9 +213,9 @@
 }
 
 .rail__icon[data-active] {
-  color: var(--text-on-accent);
-  background: var(--accent-wash);
-  border-color: var(--accent);
+  color: var(--text-primary);
+  background: var(--bg-selected);
+  border-color: var(--text-tertiary);
 }
 
 .sidebar {
@@ -266,6 +266,7 @@
 .tree-row {
   display: flex;
   align-items: center;
+  justify-content: flex-start;
   gap: var(--space-2);
   min-height: var(--row-height);
   padding: 0 var(--space-3);
@@ -284,7 +285,7 @@
   background: var(--bg-selected);
   color: var(--text-primary);
   font-weight: var(--weight-medium);
-  box-shadow: inset 2px 0 0 var(--accent);
+  box-shadow: inset 2px 0 0 var(--text-tertiary);
 }
 
 .tree-row__twisty {
@@ -357,7 +358,7 @@
   background: var(--bg-app);
   color: var(--text-primary);
   font-weight: var(--weight-medium);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: inset 0 -2px 0 var(--text-tertiary);
 }
 
 .tab__dirty {
@@ -392,121 +393,6 @@
 
 .toolbar__spacer {
   margin-left: auto;
-}
-
-/* --- Buttons --- */
-
-.button {
-  padding: var(--space-1) var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-button);
-  background: var(--bg-raised);
-  color: var(--text-secondary);
-  font-size: var(--text-caption);
-  transition:
-    border-color 120ms ease,
-    color 120ms ease,
-    background 120ms ease;
-}
-
-.button:hover:not(:disabled) {
-  border-color: var(--border-strong);
-  color: var(--text-primary);
-}
-
-.button:disabled {
-  opacity: 0.5;
-  cursor: default;
-}
-
-.button--primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--text-on-accent);
-  box-shadow: var(--shadow-subtle);
-}
-
-.button--primary:hover:not(:disabled) {
-  background: var(--accent-hover);
-  border-color: var(--accent-hover);
-  color: var(--text-on-accent);
-}
-
-/* A button that dispatches a write is styled as one — after the preview it
-   opens, never as a shortcut past it. */
-.button--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-wash);
-}
-
-.button--quiet {
-  border-color: transparent;
-  background: transparent;
-}
-
-.button--quiet:hover:not(:disabled) {
-  background: var(--bg-hover);
-}
-
-/* --- Badges --- */
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 1px var(--space-2);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-tag);
-  font-size: var(--text-micro);
-  letter-spacing: var(--tracking-caption);
-  color: var(--text-tertiary);
-  white-space: nowrap;
-}
-
-.badge--info {
-  border-color: var(--accent-quiet);
-  color: var(--accent-quiet);
-  background: var(--bg-tag);
-}
-
-.badge--warning {
-  border-color: var(--warning);
-  color: var(--warning);
-  background: var(--warning-wash);
-}
-
-.badge--danger {
-  border-color: var(--danger);
-  color: var(--danger);
-  background: var(--danger-wash);
-}
-
-.badge--success {
-  border-color: var(--success);
-  color: var(--success);
-  background: var(--success-wash);
-}
-
-.badge[data-job-state='succeeded'] {
-  border-color: var(--success);
-  color: var(--success);
-}
-
-.badge[data-job-state='failed'] {
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-/* partiallyComplete is its own state and is never shown as success. */
-.badge[data-job-state='partiallyComplete'] {
-  border-color: var(--warning);
-  color: var(--warning);
-}
-
-.badge[data-job-state='running'] {
-  border-color: var(--accent-quiet);
-  color: var(--accent-quiet);
 }
 
 /* --- Grid --- */
@@ -547,36 +433,6 @@
   color: var(--text-primary);
 }
 
-/* --- Progress --- */
-
-.progress {
-  height: 4px;
-  background: var(--bg-hover);
-  border-radius: var(--radius-tag);
-  overflow: hidden;
-  margin-bottom: 2px;
-}
-
-.progress__bar {
-  height: 100%;
-  background: var(--accent);
-  transition: width 160ms ease;
-}
-
-.progress__bar[data-indeterminate] {
-  background: linear-gradient(90deg, transparent, var(--accent-quiet), transparent);
-  animation: progress-sweep 1.2s linear infinite;
-}
-
-@keyframes progress-sweep {
-  from {
-    transform: translateX(-100%);
-  }
-  to {
-    transform: translateX(100%);
-  }
-}
-
 /* --- Bottom panel --- */
 
 .panel {
@@ -611,14 +467,14 @@
 .panel__tab[data-active] {
   color: var(--text-primary);
   font-weight: var(--weight-medium);
-  box-shadow: inset 0 -2px 0 var(--accent);
+  box-shadow: inset 0 -2px 0 var(--text-tertiary);
 }
 
 .panel__count {
   padding: 0 5px;
   border-radius: var(--radius-tag);
-  background: var(--accent-wash);
-  color: var(--accent-quiet);
+  background: var(--bg-selected);
+  color: var(--text-secondary);
   font-size: var(--text-micro);
 }
 

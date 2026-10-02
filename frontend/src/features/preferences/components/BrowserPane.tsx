@@ -1,3 +1,9 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 /**
  * Screen 5a — Browser & tree.
  *
@@ -8,114 +14,114 @@
 export function BrowserPane() {
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Paging &amp; limits</span>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-page">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-page">
             Entries per page
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-page"
             className="field"
             type="number"
             defaultValue={100}
             style={{ width: 90, flex: 'none' }}
           />
-          <label className="field-row__label field-row__label--auto" htmlFor="pref-fetch">
+          <FieldLabel className="field-row__label field-row__label--auto" htmlFor="pref-fetch">
             Fetch on scroll
-          </label>
-          <input id="pref-fetch" type="checkbox" />
+          </FieldLabel>
+          <Checkbox id="pref-fetch" />
           <span className="dim">off means an explicit &ldquo;fetch next&rdquo; row</span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-size">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-size">
             Size limit
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-size"
             className="field"
             type="number"
             defaultValue={1000}
             style={{ width: 90, flex: 'none' }}
           />
-          <label className="field-row__label field-row__label--auto" htmlFor="pref-time">
+          <FieldLabel className="field-row__label field-row__label--auto" htmlFor="pref-time">
             Time limit
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-time"
             className="field"
             defaultValue="10 s"
             style={{ width: 90, flex: 'none' }}
           />
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-aliases">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-aliases">
             Aliases · referrals
-          </label>
-          <select id="pref-aliases" className="field" defaultValue="find">
+          </FieldLabel>
+          <NativeSelect id="pref-aliases" className="field" defaultValue="find">
             <option value="never">dereference: never</option>
             <option value="find">dereference: finding</option>
             <option value="search">dereference: searching</option>
             <option value="always">dereference: always</option>
-          </select>
-          <select className="field" defaultValue="follow" aria-label="Referrals">
+          </NativeSelect>
+          <NativeSelect className="field" defaultValue="follow" aria-label="Referrals">
             <option value="follow">referrals: follow</option>
             <option value="ignore">referrals: ignore</option>
             <option value="ask">referrals: ask</option>
-          </select>
-        </div>
-      </div>
+          </NativeSelect>
+        </Field>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">Display</span>
-        <div className="field-row field-row--wrap">
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Entry label</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               RDN
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               full DN
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               attribute…
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-sort">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-sort">
             Sort children by
-          </label>
-          <select id="pref-sort" className="field" defaultValue="rdn">
+          </FieldLabel>
+          <NativeSelect id="pref-sort" className="field" defaultValue="rdn">
             <option value="rdn">RDN</option>
             <option value="none">server order</option>
-          </select>
-        </div>
-        <div className="field-row field-row--wrap">
+          </NativeSelect>
+        </Field>
+        <Field orientation="horizontal" className="field-row field-row--wrap">
           <span className="field-row__label">Show</span>
           <span className="tag-set">
-            <button type="button" className="tag" data-selected>
+            <Button variant="outline" size="xs" type="button" className="tag" data-selected>
               child count
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               operational attrs
-            </button>
-            <button type="button" className="tag">
+            </Button>
+            <Button variant="outline" size="xs" type="button" className="tag">
               subentries
-            </button>
+            </Button>
           </span>
-        </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-expand">
+        </Field>
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-expand">
             Expand on connect
-          </label>
-          <select id="pref-expand" className="field" defaultValue="first">
+          </FieldLabel>
+          <NativeSelect id="pref-expand" className="field" defaultValue="first">
             <option value="first">first naming context</option>
             <option value="none">none</option>
             <option value="last">last session</option>
-          </select>
-        </div>
-      </div>
+          </NativeSelect>
+        </Field>
+      </Card>
     </>
   );
 }

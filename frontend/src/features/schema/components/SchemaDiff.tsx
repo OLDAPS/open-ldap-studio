@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Schema diff between two connections (screen 1d, "dev ↔ prod" tab).
  *
@@ -16,9 +17,9 @@ export function SchemaDiff() {
         <span>Schema diff</span>
         <span className="toolbar__spacer" />
         <div className="actions">
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             Export as LDIF change
-          </button>
+          </Button>
         </div>
       </div>
 

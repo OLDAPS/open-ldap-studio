@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * The result grid (screen 1c, lower half).
  *
@@ -24,15 +25,15 @@ export function ResultGrid() {
         <span>{rows.length === 0 ? 'no results yet' : `${rows.length} results`}</span>
         <span className="toolbar__spacer" />
         <div className="actions">
-          <button type="button" className="button" disabled={rows.length === 0}>
+          <Button type="button" variant="outline" disabled={rows.length === 0}>
             Export LDIF / CSV
-          </button>
-          <button type="button" className="button" disabled={rows.length === 0}>
+          </Button>
+          <Button type="button" variant="outline" disabled={rows.length === 0}>
             Bulk modify…
-          </button>
-          <button type="button" className="button">
+          </Button>
+          <Button type="button" variant="outline">
             Columns ▾
-          </button>
+          </Button>
         </div>
       </div>
 

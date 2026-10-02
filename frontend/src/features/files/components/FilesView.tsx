@@ -1,3 +1,6 @@
+import { Label } from '@/components/ui/label';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 /**
  * Screen 1e — LDIF and files.
  *
@@ -20,17 +23,18 @@ export function FilesView() {
         <div className="sidebar__header">
           <span>Workspace files</span>
           <span className="sidebar__actions mono">
-            <button
+            <Button
               type="button"
-              className="button button--quiet"
+              variant="ghost"
+              size="xs"
               title="New LDIF file"
               aria-label="New LDIF file"
             >
               +
-            </button>
-            <button type="button" className="button button--quiet" title="More" aria-label="More">
+            </Button>
+            <Button type="button" variant="ghost" size="xs" title="More" aria-label="More">
               ⋯
-            </button>
+            </Button>
           </span>
         </div>
 
@@ -45,14 +49,14 @@ export function FilesView() {
             <span className="tree-row__glyph tree-row__glyph--entry" aria-hidden="true" />
             <span>{connection?.serverIdentity ?? 'no connection'}</span>
           </div>
-          <label className="tree-row" style={{ cursor: 'pointer' }}>
-            <input type="checkbox" defaultChecked />
+          <Label className="tree-row" style={{ cursor: 'pointer' }}>
+            <Checkbox defaultChecked />
             <span className="dim">dry run</span>
-          </label>
-          <label className="tree-row" style={{ cursor: 'pointer' }}>
-            <input type="checkbox" />
+          </Label>
+          <Label className="tree-row" style={{ cursor: 'pointer' }}>
+            <Checkbox />
             <span className="dim">continue on error</span>
-          </label>
+          </Label>
         </div>
       </aside>
 

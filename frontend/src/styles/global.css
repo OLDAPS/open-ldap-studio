@@ -1,5 +1,37 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
 @import './fonts.css';
 @import './tokens.css';
+
+@custom-variant dark (&:is([data-theme='dark'] *, [data-theme='high-contrast'] *));
+
+/* Map shadcn's semantic surface onto the existing Obsidian design tokens. */
+@theme inline {
+  --font-sans: var(--font-ui);
+  --font-heading: var(--font-ui);
+  --color-background: var(--bg-app);
+  --color-foreground: var(--text-primary);
+  --color-card: var(--bg-panel);
+  --color-card-foreground: var(--text-primary);
+  --color-popover: var(--bg-raised);
+  --color-popover-foreground: var(--text-primary);
+  --color-primary: var(--accent);
+  --color-primary-foreground: var(--text-on-accent);
+  --color-secondary: var(--bg-raised);
+  --color-secondary-foreground: var(--text-secondary);
+  --color-muted: var(--bg-hover);
+  --color-muted-foreground: var(--text-tertiary);
+  --color-accent: var(--accent-wash);
+  --color-accent-foreground: var(--text-primary);
+  --color-destructive: var(--danger);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--accent-quiet);
+  --radius-sm: var(--radius-chrome);
+  --radius-md: var(--radius-input);
+  --radius-lg: var(--radius-card);
+  --radius-xl: var(--radius-card);
+}
 
 *,
 *::before,

@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Saved searches and filter history (screen 1c, sidebar top).
  *
@@ -15,10 +16,10 @@ export function SavedSearches() {
         <p className="sidebar__note">no saved searches yet</p>
       ) : (
         saved.map((search) => (
-          <button key={search.id} type="button" className="tree-row">
+          <Button variant="ghost" size="xs" key={search.id} type="button" className="tree-row">
             <span className="tree-row__glyph" aria-hidden="true" />
             <span>{search.name}</span>
-          </button>
+          </Button>
         ))
       )}
 
@@ -27,9 +28,9 @@ export function SavedSearches() {
         <p className="sidebar__note">filters you run appear here</p>
       ) : (
         history.map((filter) => (
-          <button key={filter} type="button" className="tree-row">
+          <Button variant="ghost" size="xs" key={filter} type="button" className="tree-row">
             <span className="mono dim">{filter}</span>
-          </button>
+          </Button>
         ))
       )}
     </>

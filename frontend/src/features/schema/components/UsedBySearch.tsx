@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * "Used by N entries · run as search" (screen 1d).
  *
@@ -11,9 +12,9 @@ export function UsedBySearch({ count }: { count?: number }) {
       <span className="mono">
         {count === undefined ? '—' : `${count.toLocaleString()} entries`}
       </span>
-      <button type="button" className="button button--quiet" disabled={count === undefined}>
+      <Button type="button" variant="ghost" size="xs" disabled={count === undefined}>
         run as search
-      </button>
+      </Button>
     </div>
   );
 }

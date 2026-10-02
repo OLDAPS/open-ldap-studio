@@ -1,3 +1,5 @@
+import { Alert } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 /**
  * The DIT tree (screen 1b, sidebar).
  *
@@ -50,9 +52,7 @@ export function DitTree() {
       <>
         <TreeFilterBox value={filter} onChange={setFilter} />
         <div className="sidebar__body">
-          <p className="sidebar__note">
-            {connection ? 'not connected' : 'no connection selected'}
-          </p>
+          <p className="sidebar__note">{connection ? 'not connected' : 'no connection selected'}</p>
         </div>
       </>
     );
@@ -66,9 +66,12 @@ export function DitTree() {
         {tree.loadingRoots ? <p className="sidebar__note">reading naming contexts…</p> : null}
 
         {tree.rootError ? (
-          <div className="strip strip--danger" style={{ margin: 'var(--space-2) var(--space-3)' }}>
+          <Alert
+            className="strip strip--danger"
+            style={{ margin: 'var(--space-2) var(--space-3)' }}
+          >
             <span className="mono">{tree.rootError}</span>
-          </div>
+          </Alert>
         ) : null}
 
         <div style={{ height: virtual.getTotalSize(), position: 'relative' }}>
@@ -88,7 +91,9 @@ export function DitTree() {
 
             if (row.kind === 'more') {
               return (
-                <button
+                <Button
+                  variant="ghost"
+                  size="xs"
                   key={item.key}
                   type="button"
                   className="tree-row tree-row--more"
@@ -108,14 +113,16 @@ export function DitTree() {
                           row.serverLimit ? ` (${row.serverLimit})` : ''
                         }`
                       : `▾ fetch more · ${row.loaded.toLocaleString()} loaded`}
-                </button>
+                </Button>
               );
             }
 
             const isLeaf = row.hasChildren === 'no';
 
             return (
-              <button
+              <Button
+                variant="ghost"
+                size="xs"
                 key={item.key}
                 type="button"
                 className="tree-row"
@@ -150,9 +157,7 @@ export function DitTree() {
                   {row.loading ? '·' : isLeaf ? '' : row.expanded ? '▾' : '▸'}
                 </span>
                 <span
-                  className={
-                    isLeaf ? 'tree-row__glyph tree-row__glyph--entry' : 'tree-row__glyph'
-                  }
+                  className={isLeaf ? 'tree-row__glyph tree-row__glyph--entry' : 'tree-row__glyph'}
                   aria-hidden="true"
                 />
                 <span>{row.label}</span>
@@ -161,7 +166,7 @@ export function DitTree() {
                     failed
                   </span>
                 ) : null}
-              </button>
+              </Button>
             );
           })}
         </div>

@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Screen 1c — search and filter builder with result grid.
  *
@@ -17,17 +18,18 @@ export function SearchesView() {
         <div className="sidebar__header">
           <span>Searches</span>
           <span className="sidebar__actions mono">
-            <button
+            <Button
               type="button"
-              className="button button--quiet"
+              variant="ghost"
+              size="xs"
               title="New search"
               aria-label="New search"
             >
               +
-            </button>
-            <button type="button" className="button button--quiet" title="More" aria-label="More">
+            </Button>
+            <Button type="button" variant="ghost" size="xs" title="More" aria-label="More">
               ⋯
-            </button>
+            </Button>
           </span>
         </div>
 

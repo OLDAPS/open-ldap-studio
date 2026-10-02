@@ -1,32 +1,35 @@
+import { Table, TableBody, TableCell, TableHead, TableRow } from '@/components/ui/table';
+import { Button } from '@/components/ui/button';
+import { AppDialog } from '@/components/ui/app-dialog';
 import React from 'react';
 
 export function PropertiesDialog() {
   return (
-    <div className="modal-overlay">
-      <div className="modal properties-dialog">
-        <div className="modal__header">
-          <h3>Properties</h3>
-          <button className="modal__close">×</button>
-        </div>
-        <div className="modal__body">
-          <table style={{ width: '100%', textAlign: 'left' }}>
-            <tbody>
-              <tr>
-                <th style={{ width: '150px' }}>Type</th>
-                <td>Entry</td>
-              </tr>
-              <tr>
-                <th>DN</th>
-                <td style={{ fontFamily: 'monospace' }}>cn=admin,dc=example,dc=org</td>
-              </tr>
-              <tr>
-                <th>Size</th>
-                <td>1.2 KB</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+    <AppDialog className="properties-dialog" title="Properties">
+      <div className="modal__header">
+        <h3>Properties</h3>
+        <Button variant="ghost" size="icon-sm" className="modal__close">
+          ×
+        </Button>
       </div>
-    </div>
+      <div className="modal__body">
+        <Table style={{ width: '100%', textAlign: 'left' }}>
+          <TableBody>
+            <TableRow>
+              <TableHead style={{ width: '150px' }}>Type</TableHead>
+              <TableCell>Entry</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableHead>DN</TableHead>
+              <TableCell style={{ fontFamily: 'monospace' }}>cn=admin,dc=example,dc=org</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableHead>Size</TableHead>
+              <TableCell>1.2 KB</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+      </div>
+    </AppDialog>
   );
 }

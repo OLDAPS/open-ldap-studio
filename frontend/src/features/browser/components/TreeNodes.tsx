@@ -1,3 +1,4 @@
+import { Input } from '@/components/ui/input';
 /**
  * Small pieces of the tree sidebar (screen 1b).
  *
@@ -13,7 +14,7 @@ export function TreeFilterBox({
   onChange: (next: string) => void;
 }) {
   return (
-    <input
+    <Input
       className="field sidebar__filter"
       type="search"
       value={value}

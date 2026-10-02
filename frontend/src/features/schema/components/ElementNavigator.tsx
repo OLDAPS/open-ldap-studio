@@ -1,3 +1,4 @@
+import { Button } from '@/components/ui/button';
 /**
  * Back / forward through visited schema elements (screen 1d).
  *
@@ -7,13 +8,13 @@
 export function ElementNavigator({ current }: { current?: string }) {
   return (
     <div className="actions">
-      <button type="button" className="button button--quiet" aria-label="Back">
+      <Button type="button" variant="ghost" size="xs" aria-label="Back">
         ←
-      </button>
+      </Button>
       <span className="mono">{current ?? '—'}</span>
-      <button type="button" className="button button--quiet" aria-label="Forward">
+      <Button type="button" variant="ghost" size="xs" aria-label="Forward">
         →
-      </button>
+      </Button>
     </div>
   );
 }

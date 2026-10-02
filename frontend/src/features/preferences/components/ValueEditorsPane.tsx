@@ -1,3 +1,8 @@
+import { Field, FieldLabel } from '@/components/ui/field';
+import { Card } from '@/components/ui/card';
+import { NativeSelect } from '@/components/ui/native-select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 /**
  * Screen 5c — Value editors: which editor opens for which syntax.
  *
@@ -22,7 +27,7 @@ export function ValueEditorsPane() {
 
   return (
     <>
-      <div className="card">
+      <Card className="card">
         <span className="card__label">By attribute type</span>
         <div className="dgrid">
           <div className="dgrid__head" style={{ '--cols': COLS } as React.CSSProperties}>
@@ -43,16 +48,16 @@ export function ValueEditorsPane() {
           ))}
         </div>
         <div className="actions">
-          <button type="button" className="button">
+          <Button type="button" variant="outline">
             + Add mapping
-          </button>
-          <button type="button" className="button">
+          </Button>
+          <Button type="button" variant="outline">
             Remove
-          </button>
+          </Button>
         </div>
-      </div>
+      </Card>
 
-      <div className="card">
+      <Card className="card">
         <span className="card__label">By syntax OID</span>
         <div className="dgrid">
           <div className="dgrid__head" style={{ '--cols': COLS } as React.CSSProperties}>
@@ -72,26 +77,26 @@ export function ValueEditorsPane() {
             </div>
           ))}
         </div>
-        <div className="field-row">
-          <label className="field-row__label" htmlFor="pref-unknown">
+        <Field orientation="horizontal" className="field-row">
+          <FieldLabel className="field-row__label" htmlFor="pref-unknown">
             Unknown syntax
-          </label>
-          <select id="pref-unknown" className="field" defaultValue="text">
+          </FieldLabel>
+          <NativeSelect id="pref-unknown" className="field" defaultValue="text">
             <option value="text">multi-line text</option>
             <option value="hex">hex / base64</option>
-          </select>
-          <label className="field-row__label field-row__label--auto" htmlFor="pref-inline">
+          </NativeSelect>
+          <FieldLabel className="field-row__label field-row__label--auto" htmlFor="pref-inline">
             Max inline length
-          </label>
-          <input
+          </FieldLabel>
+          <Input
             id="pref-inline"
             className="field"
             type="number"
             defaultValue={120}
             style={{ width: 90, flex: 'none' }}
           />
-        </div>
-      </div>
+        </Field>
+      </Card>
     </>
   );
 }

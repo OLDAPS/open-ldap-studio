@@ -1,21 +1,28 @@
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { AppDialog } from '@/components/ui/app-dialog';
 import React from 'react';
 
 export function AttributeWizard() {
   return (
-    <div className="modal-overlay">
-      <div className="modal attribute-wizard">
-        <div className="modal__header">
-          <h3>Add Attribute</h3>
-        </div>
-        <div className="modal__body">
-          <input type="text" placeholder="Attribute name" />
-          <label><input type="checkbox" /> ;binary</label>
-          <label><input type="checkbox" /> ;lang-de</label>
-        </div>
-        <div className="modal__footer">
-          <button className="button button--primary">Add</button>
-        </div>
+    <AppDialog className="attribute-wizard" title="Add Attribute">
+      <div className="modal__header">
+        <h3>Add Attribute</h3>
       </div>
-    </div>
+      <div className="modal__body">
+        <Input type="text" placeholder="Attribute name" />
+        <Label>
+          <Checkbox /> ;binary
+        </Label>
+        <Label>
+          <Checkbox /> ;lang-de
+        </Label>
+      </div>
+      <div className="modal__footer">
+        <Button variant="default">Add</Button>
+      </div>
+    </AppDialog>
   );
 }
