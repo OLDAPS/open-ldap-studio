@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -273,18 +274,37 @@ func TestDryRunSendsNothingAndRecordsWhatItWouldHaveSent(t *testing.T) {
 
 func TestPruneDropsOnlyFinishedJobs(t *testing.T) {
 	r := NewRegistry(&recorder{})
+	// Some platform clocks return the same time for consecutive readings.
+	// Control the clock so pruning never relies on a real clock tick.
+	var now atomic.Int64
+	now.Store(time.Date(2026, time.January, 1, 0, 0, 0, 0, time.UTC).UnixNano())
+	r.clock = func() time.Time { return time.Unix(0, now.Load()) }
+	t.Cleanup(r.CancelAll)
+	runningID := r.Start(context.Background(), KindSearch, ModeExecute, "p1", 0, func(ctx context.Context, _ *Reporter) error {
+		<-ctx.Done()
+		return ctx.Err()
+	})
 	id := r.Start(context.Background(), KindSearch, ModeExecute, "p1", 0, func(context.Context, *Reporter) error {
 		return nil
 	})
-	waitFor(t, 2*time.Second, func() bool { job, _ := r.Get(id); return job.State.IsTerminal() })
+	if !waitFor(t, 2*time.Second, func() bool { job, _ := r.Get(id); return job.State.IsTerminal() }) {
+		t.Fatal("job did not finish")
+	}
 
 	if removed := r.Prune(time.Hour); removed != 0 {
 		t.Errorf("pruned %d recent jobs, want 0", removed)
 	}
+	if removed := r.Prune(0); removed != 0 {
+		t.Errorf("pruned %d jobs at the cutoff, want 0", removed)
+	}
+	now.Add(int64(time.Nanosecond))
 	if removed := r.Prune(0); removed != 1 {
 		t.Errorf("pruned %d jobs, want 1", removed)
 	}
 	if _, err := r.Get(id); !errors.Is(err, ErrNoSuchJob) {
 		t.Error("pruned job is still registered")
+	}
+	if job, err := r.Get(runningID); err != nil || job.State != StateRunning {
+		t.Errorf("running job was pruned or stopped: job = %+v, err = %v", job, err)
 	}
 }
