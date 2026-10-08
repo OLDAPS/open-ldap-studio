@@ -3,8 +3,11 @@
 package containers
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"fmt"
+	"os"
 	"path/filepath"
 	"runtime"
 	"time"
@@ -46,6 +49,47 @@ func seedDir() (string, error) {
 	return filepath.Join(filepath.Dir(file), "..", "..", "server", "seed"), nil
 }
 
+// countSeedEntries is how many entries the seed files add: one per line that
+// starts with "dn:" (which also matches the base64 form, "dn::"). Folded
+// continuation lines start with a space and comments with "#", so neither
+// counts.
+func countSeedEntries(files []string) (int, error) {
+	n := 0
+	for _, f := range files {
+		fh, err := os.Open(f)
+		if err != nil {
+			return 0, err
+		}
+		sc := bufio.NewScanner(fh)
+		sc.Buffer(make([]byte, 0, 64*1024), 4*1024*1024)
+		for sc.Scan() {
+			if bytes.HasPrefix(sc.Bytes(), []byte("dn:")) {
+				n++
+			}
+		}
+		err = sc.Err()
+		_ = fh.Close()
+		if err != nil {
+			return 0, fmt.Errorf("reading %s: %w", f, err)
+		}
+	}
+	return n, nil
+}
+
+// readyScript succeeds only when the directory holds every seeded entry and
+// still does a moment later. The image loads the seed LDIFs into a temporary
+// slapd, then restarts it as the real server: a probe that only asks whether
+// the base DN answers passes after the first, five-entry file, and the tests
+// then see a half-loaded tree (204 of 205 people) or a connection reset by the
+// restart. Counting every entry, three times a second apart, rules out both.
+func readyScript(entries int) string {
+	return fmt.Sprintf(`for i in 1 2 3; do
+  n=$(ldapsearch -x -H ldap://127.0.0.1:1389 -D %s -w %s -b %s -s sub -LLL dn 2>/dev/null | grep -c '^dn:')
+  [ "$n" -eq %d ] || exit 1
+  sleep 1
+done`, OpenLDAPAdminDN, OpenLDAPAdminPassword, OpenLDAPBaseDN, entries)
+}
+
 // SetupOpenLDAP runs OpenLDAP seeded from server/seed with cn=config enabled,
 // and returns once the base DN answers a search. Plain LDAP only: StartTLS and
 // LDAPS need the certificate setup that lives in the compose file.
@@ -57,6 +101,11 @@ func SetupOpenLDAP(ctx context.Context) (*OpenLDAPContainer, error) {
 	seeds, err := filepath.Glob(filepath.Join(dir, "*.ldif"))
 	if err != nil || len(seeds) == 0 {
 		return nil, fmt.Errorf("no seed LDIF files in %s (err: %v)", dir, err)
+	}
+
+	entries, err := countSeedEntries(seeds)
+	if err != nil {
+		return nil, fmt.Errorf("counting seed entries: %w", err)
 	}
 
 	// Applied by the image in name order, which is why the files are numbered.
@@ -84,14 +133,10 @@ func SetupOpenLDAP(ctx context.Context) (*OpenLDAPContainer, error) {
 			"LDAP_CUSTOM_LDIF_DIR":       "/ldifs",
 			"LDAP_PORT_NUMBER":           "1389",
 		},
-		// A search that succeeds, not a log line: "slapd starting" appears
-		// before the seed has been imported, and a directory that is up but
-		// empty would fail the first test that reads from it.
-		WaitingFor: wait.ForExec([]string{
-			"ldapsearch", "-x", "-H", "ldap://127.0.0.1:1389",
-			"-D", OpenLDAPAdminDN, "-w", OpenLDAPAdminPassword,
-			"-b", OpenLDAPBaseDN, "-s", "base", "(objectClass=*)", "dn",
-		}).WithStartupTimeout(3 * time.Minute).WithPollInterval(2 * time.Second),
+		// Ready means seeded and stable, not merely answering; see readyScript.
+		WaitingFor: wait.ForExec([]string{"sh", "-c", readyScript(entries)}).
+			WithStartupTimeout(3 * time.Minute).
+			WithPollInterval(2 * time.Second),
 	}
 
 	container, err := testcontainers.GenericContainer(ctx, testcontainers.GenericContainerRequest{
