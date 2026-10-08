@@ -2,6 +2,9 @@ version: "2"
 
 run:
   timeout: 5m
+  # Lint the integration-tagged files too; they are otherwise invisible.
+  build-tags:
+    - integration
   modules-download-mode: readonly
 
 linters:

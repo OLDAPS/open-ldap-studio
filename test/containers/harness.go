@@ -23,14 +23,14 @@ func SetupHarness(ctx context.Context) (*Harness, error) {
 
 	apacheds, err := SetupApacheDS(ctx)
 	if err != nil {
-		openldap.Terminate(ctx)
+		_ = openldap.Terminate(ctx)
 		return nil, fmt.Errorf("apacheds setup failed: %v", err)
 	}
 
 	poor, err := SetupPoorContainer(ctx)
 	if err != nil {
-		openldap.Terminate(ctx)
-		apacheds.Terminate(ctx)
+		_ = openldap.Terminate(ctx)
+		_ = apacheds.Terminate(ctx)
 		return nil, fmt.Errorf("poor container setup failed: %v", err)
 	}
 
@@ -48,12 +48,12 @@ func SetupHarness(ctx context.Context) (*Harness, error) {
 // Teardown shuts down all containers.
 func (h *Harness) Teardown(ctx context.Context) {
 	if h.OpenLDAP != nil {
-		h.OpenLDAP.Terminate(ctx)
+		_ = h.OpenLDAP.Terminate(ctx)
 	}
 	if h.ApacheDS != nil {
-		h.ApacheDS.Terminate(ctx)
+		_ = h.ApacheDS.Terminate(ctx)
 	}
 	if h.Poor != nil {
-		h.Poor.Terminate(ctx)
+		_ = h.Poor.Terminate(ctx)
 	}
 }
