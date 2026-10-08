@@ -45,7 +45,7 @@ you can download and try one.
 
 | Platform | Artefact | Built with |
 |---|---|---|
-| Linux | `.deb` and a portable `.tar.gz` | [nfpm](https://nfpm.goreleaser.com/) (`config: build/linux/nfpm.yaml`) |
+| Linux | `.deb` and a portable `.tar.gz` | `dpkg-deb` (control file: `build/linux/control`) |
 | macOS | `.dmg` holding the universal `.app` | `hdiutil` |
 | Windows | NSIS `-setup.exe` | `wails build -nsis` (needs `makensis`) |
 

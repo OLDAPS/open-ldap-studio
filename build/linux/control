@@ -1,0 +1,11 @@
+Package: open-ldap-studio
+Version: @VERSION@
+Section: utils
+Priority: optional
+Architecture: amd64
+Depends: libgtk-3-0, libwebkit2gtk-4.1-0
+Installed-Size: @INSTALLED_SIZE@
+Maintainer: Open LDAP Studio contributors
+Homepage: https://github.com/OLDAPS/open-ldap-studio
+Description: A cross-platform LDAP workbench
+ Browse, search and edit LDAP directories.
