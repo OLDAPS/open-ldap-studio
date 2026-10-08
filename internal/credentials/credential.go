@@ -33,9 +33,9 @@ type Credential struct {
 	// a secret, and resolving it is internal/secrets' job alone.
 	SecretRef string `json:"secretRef,omitempty"`
 
-	CreatedAt time.Time `json:"createdAt"`
+	CreatedAt time.Time `json:"createdAt" ts_type:"string"`
 	// RotatedAt drives the password-age display and rotation reminders.
-	RotatedAt time.Time `json:"rotatedAt,omitzero"`
+	RotatedAt time.Time `json:"rotatedAt,omitzero" ts_type:"string"`
 	// RotateAfterDays of 0 disables the reminder.
 	RotateAfterDays int `json:"rotateAfterDays,omitempty"`
 

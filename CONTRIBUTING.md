@@ -46,6 +46,12 @@ Windows.
 this generation during `make build` and `make run`. Change the Go method or
 DTO and regenerate instead of maintaining declarations by hand.
 
+The generated `frontend/wailsjs/go/` files are checked in so frontend tools work
+without Go installed. CI regenerates them and rejects drift. The typed client
+in `frontend/src/bridge/` is the frontend's only entrypoint to these bindings.
+Run `cd frontend && npm run test:dev` to verify React Fast Refresh and the HMR
+WebSocket. Vite listens on port 5173; Wails owns its separate port 34115.
+
 The integration tests (`make test-integration`) start a seeded OpenLDAP with
 testcontainers, so they need a running Docker daemon and fail without one.
 

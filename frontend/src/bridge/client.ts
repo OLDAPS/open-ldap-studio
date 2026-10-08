@@ -1,15 +1,16 @@
 /**
  * The typed client for the Go bridge.
  *
- * Wails exposes bound methods on `window.go.<package>.<struct>.<Method>`. This
- * module wraps that one lookup so the rest of the frontend never touches the
- * global, and so a build can run — and the tests can run — without a webview
- * behind it.
+ * Calls delegate to Wails' generated module. Method names and argument tuples
+ * come from its declarations; the frontend never maintains a second API.
+ * This adapter checks availability and keeps presentation types and Wails'
+ * multiple-result arrays at the IPC boundary.
  *
  * The write surface is deliberately small: `preview` then `commit(token)`.
  * There is no `modify`, `add`, `delete` or `rename` here because there is none
  * on the Go side either (bridge-api.md Rule 1).
  */
+import * as generated from '../../wailsjs/go/bridge/Bridge';
 import type {
   AppInfo,
   ChangeSet,
@@ -30,10 +31,13 @@ import type {
   TestResult,
 } from './types';
 
-type BoundMethod = (...args: unknown[]) => Promise<unknown>;
+type GeneratedAPI = typeof generated;
+type BridgeCall = {
+  [Method in keyof GeneratedAPI]: [method: Method, ...args: Parameters<GeneratedAPI[Method]>];
+}[keyof GeneratedAPI];
 
 interface WailsWindow {
-  go?: Record<string, Record<string, Record<string, BoundMethod>>>;
+  go?: { bridge?: { Bridge?: Partial<GeneratedAPI> } };
   runtime?: {
     EventsOn: (name: string, handler: (...data: unknown[]) => void) => () => void;
     EventsOff: (name: string) => void;
@@ -43,13 +47,10 @@ interface WailsWindow {
   };
 }
 
-const BOUND_PACKAGE = 'bridge';
-const BOUND_STRUCT = 'Bridge';
-
 /** True when the app is running inside the Wails webview. */
 export function isEmbedded(): boolean {
   const w = window as unknown as WailsWindow;
-  return Boolean(w.go?.[BOUND_PACKAGE]?.[BOUND_STRUCT]);
+  return Boolean(w.go?.bridge?.Bridge);
 }
 
 export class BridgeUnavailableError extends Error {
@@ -62,13 +63,16 @@ export class BridgeUnavailableError extends Error {
   }
 }
 
-async function call<T>(method: string, ...args: unknown[]): Promise<T> {
+async function call<T>(...[method, ...args]: BridgeCall): Promise<T> {
   const w = window as unknown as WailsWindow;
-  const bound = w.go?.[BOUND_PACKAGE]?.[BOUND_STRUCT]?.[method];
-  if (!bound) {
+  if (!w.go?.bridge?.Bridge?.[method]) {
     throw new BridgeUnavailableError(method);
   }
-  return (await bound(...args)) as T;
+  // The union of generated signatures is checked by BridgeCall above. Wails
+  // declares multiple Go results as a union instead of the array it returns,
+  // so this is the single assertion where transport becomes presentation data.
+  const bound = generated[method] as (...parameters: unknown[]) => Promise<T>;
+  return await bound(...args);
 }
 
 export const bridge = {
@@ -130,7 +134,11 @@ export const bridge = {
   listChildren: (profileId: string, dn: string, page: PageRequest) =>
     call<Page>('ListChildren', profileId, dn, page),
   readEntry: (profileId: string, dn: string, includeOperational = false) =>
-    call<[Entry, Result]>('ReadEntry', profileId, dn, { includeOperational, attributes: [] }),
+    call<[Entry, Result]>('ReadEntry', profileId, dn, {
+      IncludeOperational: includeOperational,
+      Attributes: [],
+      ManageDsaIT: false,
+    }),
 
   /** Local only. It never contacts a server and never rewrites the filter. */
   validateFilter: (filter: string) => call<FilterDiagnostic>('ValidateFilter', filter),

@@ -51,7 +51,7 @@ T013–T016 make all three checkable by CI on day one. Write them first.
 - [ ] T001 Initialise the Go module and pin the toolchain to Go 1.26 in `go.mod`
 - [x] T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`
 - [ ] T003 [P] Create the `internal/` package skeleton with doc.go files declaring each package's boundary in `internal/{ldapx,changeset,ldif,dsml,schema,aci,credentials,secrets,profiles,trust,history,compare,jobs,exportx,commands,prefs,logging,bridge}/doc.go`
-- [ ] T004 [P] Scaffold the React 19 + Vite 7 + TypeScript 5.9 frontend in `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`
+- [x] T004 [P] Scaffold the React 19 + Vite 7 + TypeScript 5.9 frontend in `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`
 - [ ] T005 [P] Add Zustand, TanStack Virtual, and CodeMirror 6 dependencies in `frontend/package.json`
 - [ ] T006 [P] Configure golangci-lint in `.golangci.yml` and gofumpt formatting in the Makefile
 - [ ] T007 [P] Configure ESLint, Prettier, and Vitest in `frontend/.eslintrc.cjs` and `frontend/vitest.config.ts`
