@@ -27,6 +27,7 @@ case "$os" in
     sudo apt-get install -y "$deb"
     dpkg -s open-ldap-studio | sed -n '1,3p'
     test -f /usr/share/applications/open-ldap-studio.desktop
+    test -f /usr/share/doc/open-ldap-studio/copyright
     check "installed .deb" "$(open-ldap-studio --version)"
     sudo apt-get remove -y open-ldap-studio
     ! command -v open-ldap-studio >/dev/null || { echo "binary still on PATH after removal" >&2; exit 1; }

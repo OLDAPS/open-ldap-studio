@@ -21,7 +21,6 @@ permissions:
 env:
   NODE_VERSION: "22"
   WAILS_VERSION: v2.15.0
-  NFPM_VERSION: v2.47.0
   MODULE: github.com/open-ldap-studio/open-ldap-studio
 
 jobs:
@@ -68,10 +67,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
-
-      - name: Install nfpm
-        if: runner.os == 'Linux'
-        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@${{ env.NFPM_VERSION }}
 
       # makensis is not on the runner image.
       - name: Install NSIS
