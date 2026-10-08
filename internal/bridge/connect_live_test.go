@@ -3,6 +3,7 @@ package bridge
 import (
 	"encoding/json"
 	"net"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -14,7 +15,8 @@ import (
 
 // The fixture in server/docker-compose.yml. The test skips when it is not up,
 // so this is a check you can run, not a check that blocks a build on a machine
-// with no Docker.
+// with no Docker. CI sets REQUIRE_LIVE_DIRECTORY so that a fixture that failed
+// to start fails the build instead of turning every live test into a skip.
 const (
 	liveHost = "localhost"
 	livePort = 1389
@@ -29,6 +31,9 @@ func liveBridge(t *testing.T) *Bridge {
 	address := net.JoinHostPort(liveHost, "1389")
 	conn, err := net.DialTimeout("tcp", address, 750*time.Millisecond)
 	if err != nil {
+		if os.Getenv("REQUIRE_LIVE_DIRECTORY") != "" {
+			t.Fatalf("no directory on %s, and REQUIRE_LIVE_DIRECTORY is set", address)
+		}
 		t.Skipf("no directory on %s — start it with: cd server && docker compose up -d", address)
 	}
 	_ = conn.Close()
