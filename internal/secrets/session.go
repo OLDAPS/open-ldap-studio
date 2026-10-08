@@ -25,7 +25,10 @@ func (s *Session) Get(ref string) (Secret, error) {
 	if !ok {
 		return Secret{}, ErrNotFound
 	}
-	return sec, nil
+	// A copy, never the stored slice: callers zero what they are handed once
+	// they have used it, exactly as they do with the platform providers, and
+	// that must not wipe the secret the store is still holding.
+	return Secret{b: append([]byte(nil), sec.b...)}, nil
 }
 
 func (s *Session) Set(ref string, sec Secret) error {

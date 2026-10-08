@@ -146,3 +146,27 @@ func TestOpenFallsBackToTheSessionStoreWithAReason(t *testing.T) {
 		t.Error("falling back to the session store must state why")
 	}
 }
+
+// Callers zero a secret after using it. With the session store that must wipe
+// their copy, not the one the store is still holding.
+func TestSessionGetReturnsACopy(t *testing.T) {
+	s := NewSession()
+	if err := s.Set("ref", NewSecret([]byte("hunter2"))); err != nil {
+		t.Fatalf("Set: %v", err)
+	}
+
+	first, err := s.Get("ref")
+	if err != nil {
+		t.Fatalf("Get: %v", err)
+	}
+	first.Zero()
+
+	second, err := s.Get("ref")
+	if err != nil {
+		t.Fatalf("second Get: %v", err)
+	}
+	defer second.Zero()
+	if string(second.Bytes()) != "hunter2" {
+		t.Fatalf("zeroing a retrieved secret wiped the stored one: got %q", second.Bytes())
+	}
+}
