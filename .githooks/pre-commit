@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+# Fast checks on what is staged: formatting and generated files. Heavier checks
+# (lint, vet, tests) run in pre-push. Nothing here touches the network.
+set -euo pipefail
+. "$(dirname "$0")/lib.sh"
+cd "$(git rev-parse --show-toplevel)"
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -n "$staged" ] || exit 0
+
+problems=0
+
+# Files that must never be committed, even if someone force-adds them past
+# .gitignore.
+forbidden=$(grep -E '^(\.env$|frontend/dist/|frontend/node_modules/|build/bin/|coverage\.out$)' <<<"$staged" || true)
+if [ -n "$forbidden" ]; then
+  warn "generated or secret-bearing files are staged:"
+  sed 's/^/    /' <<<"$forbidden" >&2
+  problems=1
+fi
+
+# Go: judge the staged blob, not the working tree, so a partly staged file is
+# checked as it will be committed.
+if have gofmt; then
+  unformatted=""
+  while IFS= read -r f; do
+    [ -n "$f" ] || continue
+    if [ -n "$(git show ":$f" | gofmt -l)" ]; then
+      unformatted+="    $f"$'\n'
+    fi
+  done < <(grep -E '\.go$' <<<"$staged" || true)
+  if [ -n "$unformatted" ]; then
+    warn "not gofmt-formatted (run: make fmt):"
+    printf '%s' "$unformatted" >&2
+    problems=1
+  fi
+else
+  warn "gofmt not found; skipping Go formatting check"
+fi
+
+# Frontend: prettier and eslint on the staged sources, as the working tree has
+# them (they need real files on disk).
+fe=$(grep -E '^frontend/src/.*\.(ts|tsx|css)$' <<<"$staged" | sed 's|^frontend/||' || true)
+if [ -n "$fe" ]; then
+  if [ -d frontend/node_modules ]; then
+    if ! (cd frontend && echo "$fe" | xargs npx --no-install prettier --check >&2); then
+      warn "prettier found unformatted files (run: make fmt)"
+      problems=1
+    fi
+    fe_lint=$(grep -E '\.(ts|tsx)$' <<<"$fe" || true)
+    if [ -n "$fe_lint" ] && ! (cd frontend && echo "$fe_lint" | xargs npx --no-install eslint --max-warnings 0 >&2); then
+      warn "eslint found problems"
+      problems=1
+    fi
+  else
+    warn "frontend/node_modules is missing; skipping frontend checks (run: cd frontend && npm ci)"
+  fi
+fi
+
+if [ "$problems" -ne 0 ]; then
+  fail "pre-commit failed. Fix the above, or skip once with: git commit --no-verify"
+fi

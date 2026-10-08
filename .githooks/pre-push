@@ -1,0 +1,61 @@
+#!/usr/bin/env bash
+# Mirrors the CI gates that need no Docker and no other OS: vet, golangci-lint,
+# unit tests, and the frontend lint, format and tests. A side is skipped when
+# the push touches nothing on it. CI stays the authority; this saves the
+# round trip.
+set -euo pipefail
+. "$(dirname "$0")/lib.sh"
+cd "$(git rev-parse --show-toplevel)"
+
+# stdin: <local ref> <local sha> <remote ref> <remote sha>, one line per ref.
+files=""
+while read -r _local_ref local_sha _remote_ref remote_sha; do
+  is_zero_sha "$local_sha" && continue # deleting a branch
+  files+=$'\n'"$(push_changed_files "$local_sha" "$remote_sha")"
+done
+files=$(printf '%s\n' "$files" | sed '/^$/d' | sort -u)
+
+if [ -z "$files" ]; then
+  say "nothing to check"
+  exit 0
+fi
+
+go_changed=$(grep -E '(\.go$|^go\.(mod|sum)$|^\.golangci\.yml$)' <<<"$files" || true)
+fe_changed=$(grep -E '^frontend/' <<<"$files" || true)
+
+ensure_frontend_deps() {
+  [ -d frontend/node_modules ] || (say "installing frontend dependencies (first run)"; cd frontend && npm ci --prefer-offline)
+}
+
+if [ -n "$go_changed" ]; then
+  require_golangci_v2
+  have go || fail "go is not installed"
+
+  # main.go embeds frontend/dist, which is not committed; without it nothing in
+  # the module compiles, so every Go check below would fail for the wrong reason.
+  if [ ! -d frontend/dist ]; then
+    say "building the embedded frontend (first run)"
+    ensure_frontend_deps
+    (cd frontend && npm run build)
+  fi
+
+  say "go vet"
+  go vet ./...
+  say "golangci-lint"
+  golangci-lint run
+  say "go test -short"
+  go test -short ./...
+fi
+
+if [ -n "$fe_changed" ]; then
+  have npm || fail "npm is not installed"
+  ensure_frontend_deps
+  say "frontend lint"
+  (cd frontend && npm run lint)
+  say "frontend format check"
+  (cd frontend && npx --no-install prettier --check "src/**/*.{ts,tsx,css}")
+  say "frontend tests"
+  (cd frontend && npm run test)
+fi
+
+say "all checks passed (not run here: integration tests, 3-OS build, govulncheck, npm audit; see make gates)"

@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Conventional commits: Release Please builds the changelog and the next version
+# from commit subjects (CI checks the PR title, which becomes the squash commit).
+set -euo pipefail
+. "$(dirname "$0")/lib.sh"
+
+subject=$(grep -v '^#' "$1" | sed -n '/./{p;q;}')
+
+if valid_subject "$subject"; then
+  exit 0
+fi
+
+cat >&2 <<MSG
+[hooks] commit subject is not a conventional commit:
+
+    $subject
+
+  expected   type(scope)?: description
+  types      ${CONVENTIONAL_TYPES//|/, }
+  examples   fix(secrets): return a copy from the session store
+             ci: gate the whole tree on lint
+             feat!: drop the v1 profile format
+
+  Skip this check for one commit with: git commit --no-verify
+MSG
+exit 1

@@ -1,4 +1,8 @@
-.PHONY: build test test-integration lint fmt run gates
+# Keep in step with the golangci-lint version in .github/workflows/ci.yml;
+# .githooks/tests/run.sh fails when the two differ.
+GOLANGCI_LINT_VERSION := v2.14.0
+
+.PHONY: build test test-integration lint fmt run gates tools hooks unhooks test-hooks
 
 build:
 	wails build -tags webkit2_41
@@ -27,3 +31,21 @@ gates: lint test
 	govulncheck ./...
 	cd frontend && npm audit --audit-level=high
 	go mod verify
+
+# The tool versions CI uses, installed into $(go env GOPATH)/bin.
+tools:
+	go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@$(GOLANGCI_LINT_VERSION)
+	go install mvdan.cc/gofumpt@latest
+	go install golang.org/x/vuln/cmd/govulncheck@latest
+
+# Turn the repository's git hooks on (and off). See CONTRIBUTING.md.
+hooks:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/commit-msg .githooks/pre-commit .githooks/pre-push .githooks/tests/run.sh
+	@echo "git hooks enabled: pre-commit, commit-msg, pre-push (skip once with --no-verify)"
+
+unhooks:
+	git config --unset core.hooksPath
+
+test-hooks:
+	bash .githooks/tests/run.sh
