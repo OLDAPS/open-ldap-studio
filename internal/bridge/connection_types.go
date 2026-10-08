@@ -4,8 +4,10 @@ import "github.com/open-ldap-studio/open-ldap-studio/internal/connections"
 
 // Transport aliases retain the existing Wails contract while connection
 // lifecycle ownership lives outside the bridge.
-type State = connections.State
-type ConnState = connections.ConnState
+type (
+	State     = connections.State
+	ConnState = connections.ConnState
+)
 
 const (
 	StateDisconnected = connections.StateDisconnected
