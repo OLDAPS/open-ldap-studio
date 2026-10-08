@@ -1,0 +1,36 @@
+# Debian package for Linux. Rendered by scripts/package.sh, which supplies
+# VERSION and BINARY. The webview comes from the system, not the package, so the
+# dependencies are what the Wails build links against (-tags webkit2_41).
+name: open-ldap-studio
+arch: amd64
+platform: linux
+version: ${VERSION}
+section: utils
+priority: optional
+maintainer: Open LDAP Studio contributors
+description: |
+  A cross-platform LDAP workbench.
+  Browse, search and edit LDAP directories.
+homepage: https://github.com/OLDAPS/open-ldap-studio
+license: Apache-2.0
+depends:
+  - libgtk-3-0
+  - libwebkit2gtk-4.1-0
+contents:
+  - src: ${BINARY}
+    dst: /usr/bin/open-ldap-studio
+    expand: true
+    file_info:
+      mode: 0755
+  - src: build/linux/open-ldap-studio.desktop
+    dst: /usr/share/applications/open-ldap-studio.desktop
+    file_info:
+      mode: 0644
+  - src: build/appicon.png
+    dst: /usr/share/icons/hicolor/512x512/apps/open-ldap-studio.png
+    file_info:
+      mode: 0644
+  - src: LICENSE
+    dst: /usr/share/doc/open-ldap-studio/LICENSE
+    file_info:
+      mode: 0644

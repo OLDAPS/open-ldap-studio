@@ -16,7 +16,6 @@ permissions:
 
 env:
   NODE_VERSION: "22"
-  WAILS_VERSION: v2.15.0
 
 jobs:
   # Release Please derives the next version and the changelog from commit
@@ -164,8 +163,11 @@ jobs:
       - name: Integration tests
         run: go test -count=1 -v -tags=integration ./internal/bridge/ ./test/containers/...
 
-  build:
-    name: Build ${{ matrix.os }}
+  # Unit tests on every platform: keychain_darwin.go, wincred_windows.go and
+  # secretservice_linux.go each compile on one platform only, so Linux-only
+  # testing never reaches two of the three credential bindings.
+  unit:
+    name: Unit tests ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -190,56 +192,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
-      - name: Install Wails
-        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
-
       - name: Build the embedded frontend
         working-directory: ./frontend
         run: npm ci && npm run build
 
-      # keychain_darwin.go, wincred_windows.go and secretservice_linux.go each
-      # compile on one platform only, so Linux-only testing never reaches two
-      # of the three credential bindings.
       - name: Unit tests
         run: go test -short ./...
 
-      - name: Build (Linux)
-        if: runner.os == 'Linux'
-        run: wails build -tags webkit2_41 -clean
-
-      - name: Build (macOS, Windows)
-        if: runner.os != 'Linux'
-        run: wails build -clean
-
-      # The packaged binary has to start and say what it is. --version returns
-      # before the window opens, so no display is needed. The Windows build is a
-      # GUI-subsystem executable, which has no console of its own, so its output
-      # is redirected to a file rather than read from the terminal.
-      - name: Smoke test the built binary
-        shell: bash
-        run: |
-          set -euo pipefail
-          expected=$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' internal/version/version.go)
-          case "$RUNNER_OS" in
-            Linux)   bin=build/bin/open-ldap-studio ;;
-            macOS)   bin=build/bin/open-ldap-studio.app/Contents/MacOS/open-ldap-studio ;;
-            Windows) bin=build/bin/open-ldap-studio.exe ;;
-          esac
-          if [ "$RUNNER_OS" = "Windows" ]; then
-            powershell -NoProfile -Command "Start-Process -FilePath '$bin' -ArgumentList '--version' -RedirectStandardOutput smoke.txt -Wait -NoNewWindow"
-            out=$(cat smoke.txt)
-          else
-            out=$("$bin" --version)
-          fi
-          echo "binary says: $out"
-          case "$out" in
-            "$expected "*) echo "version $expected confirmed" ;;
-            *) echo "expected a line starting with '$expected '"; exit 1 ;;
-          esac
-
-      - name: Upload build
-        uses: actions/upload-artifact@v4
-        with:
-          name: open-ldap-studio-${{ runner.os }}
-          path: build/bin/
-          retention-days: 7
+  # Builds, packages and installs the application on all three platforms; the
+  # installers are downloadable from the run, so a reviewer can try a pull
+  # request. The same workflow produces the release assets.
+  package:
+    name: Package
+    uses: ./.github/workflows/package.yml

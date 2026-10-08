@@ -39,3 +39,6 @@ go.work.sum
 # .vscode/
 # Vitest coverage output
 frontend/coverage/
+
+# Downloaded by wails during an NSIS build
+build/windows/installer/tmp/
