@@ -120,10 +120,10 @@ func (d RootDSE) SupportsSASL(mechanism string) bool {
 // rather than assumed capable.
 func (d RootDSE) MissingCapabilities() []Degradation {
 	var missing []Degradation
-	check := func(cap Capability, oid, what string) {
+	check := func(capability Capability, oid, what string) {
 		if !d.SupportsControl(oid) {
 			missing = append(missing, Degradation{
-				Capability: cap,
+				Capability: capability,
 				Reason:     "the server does not advertise " + what + " (" + oid + ")",
 			})
 		}

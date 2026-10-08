@@ -10,9 +10,7 @@ func TestValidateFilterNeverModifiesString(t *testing.T) {
 	f := "(cn=admin)"
 	// Assuming ValidateFilter exists and takes a string returning Diagnostic.
 	diag := b.ValidateFilter(f)
-	if !diag.OK {
-		// Just a placeholder assert
-	}
-	// Note: since it returns a Diagnostic struct without the filter string, 
+	_ = diag // placeholder until ValidateFilter has a real contract to assert
+	// Note: since it returns a Diagnostic struct without the filter string,
 	// the contract is satisfied by the signature alone.
 }

@@ -111,7 +111,7 @@ func scan(t *testing.T, dir string) {
 		if entry.IsDir() {
 			return nil
 		}
-		content, err := os.ReadFile(path)
+		content, err := os.ReadFile(path) //nolint:gosec // G122: test-only scan of our own repository tree
 		if err != nil {
 			return err
 		}

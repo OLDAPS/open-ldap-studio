@@ -99,7 +99,7 @@ func TestSinkWriteReportsTheCallersLength(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	p := []byte("userPassword: hunter2\n")
 	n, err := s.Write(p)
@@ -120,7 +120,7 @@ func TestSinkRotatesAtItsLimitAndKeepsThreeBackups(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func() { _ = s.Close() }()
 
 	// Shrink the limit rather than write 40 MB; the policy under test is the
 	// rotation and retention behaviour, not the constant.

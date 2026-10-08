@@ -24,7 +24,7 @@ func TestApacheDSFixtureServesACIs(t *testing.T) {
 	if container.Host == "" || container.Port == 0 {
 		t.Errorf("expected valid host and port, got %s:%d", container.Host, container.Port)
 	}
-	
-	// Add ACI test logic here later depending on LDAP client tools, currently we just 
+
+	// Add ACI test logic here later depending on LDAP client tools, currently we just
 	// discharge risk R-6 by asserting it runs properly.
 }

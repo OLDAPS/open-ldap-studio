@@ -9,7 +9,7 @@ import (
 func TestFidelityCorpus(t *testing.T) {
 	// A basic test to assert the test framework works for LDIF
 	input := "dn: cn=admin,dc=example,dc=org"
-	
+
 	if len(input) == 0 {
 		t.Fatal("input should not be empty")
 	}

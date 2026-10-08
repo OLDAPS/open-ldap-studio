@@ -51,8 +51,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -64,41 +62,24 @@ jobs:
         working-directory: ./frontend
         run: npm ci
 
-      # Like only-new-issues on the Go side: the frontend carries pre-existing
-      # eslint and prettier findings, so the gate is the diff, not the tree.
-      # Cleaning the backlog is #119 (T007); once it is clean, drop the diff
-      # and run `npm run lint` over everything.
-      - name: Resolve changed frontend sources
-        if: github.event_name == 'pull_request'
-        id: changed
-        shell: bash
-        run: |
-          set -euo pipefail
-          git fetch --no-tags origin "${{ github.base_ref }}"
-          base="origin/${{ github.base_ref }}"
-          files=$(git diff --name-only --diff-filter=ACMR "$base"...HEAD \
-            | grep -E '^frontend/src/.*\.(ts|tsx|css)$' \
-            | sed 's|^frontend/||' || true)
-          {
-            echo "files<<EOF"
-            echo "$files"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-          echo "Changed: ${files:-none}"
-
-      - name: Lint changed files
-        if: github.event_name == 'pull_request' && steps.changed.outputs.files != ''
+      - name: Lint
         working-directory: ./frontend
-        run: echo "${{ steps.changed.outputs.files }}" | xargs npx eslint --max-warnings 0
+        run: npm run lint
 
-      - name: Format check changed files
-        if: github.event_name == 'pull_request' && steps.changed.outputs.files != ''
+      - name: Format check
         working-directory: ./frontend
-        run: echo "${{ steps.changed.outputs.files }}" | xargs npx prettier --check
+        run: npx prettier --check "src/**/*.{ts,tsx,css}"
 
-      - name: Test
+      - name: Test with coverage
         working-directory: ./frontend
-        run: npm run test
+        run: npm run test:coverage
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: frontend/coverage/
+          retention-days: 14
 
       - name: Build
         working-directory: ./frontend
@@ -138,16 +119,10 @@ jobs:
       - name: Vet
         run: go vet ./...
 
-      # only-new-issues gates just the code this pull request touches; it needs
-      # a diff base, so it is a pull-request-only step. The repository carries
-      # 232 pre-existing findings — see #118 for that cleanup, after which this
-      # can run on push too and drop only-new-issues.
       - name: Lint
-        if: github.event_name == 'pull_request'
         uses: golangci/golangci-lint-action@v8
         with:
           version: v2.14.0
-          only-new-issues: true
 
       # Race detector and coverage run once, on Linux; the matrix covers the
       # per-platform code paths.

@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-// Integration test — every bind method succeeds against the OpenLDAP fixture 
+// Integration test — every bind method succeeds against the OpenLDAP fixture
 // over plain, StartTLS, and LDAPS.
 func TestBindMethods(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)

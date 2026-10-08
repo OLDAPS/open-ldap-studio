@@ -63,9 +63,10 @@ func firstPartyPackages(t *testing.T) []goPackage {
 		}
 
 		fset := token.NewFileSet()
-		parsed, parseErr := parser.ParseDir(fset, path, func(fi os.FileInfo) bool {
-			return !strings.HasSuffix(fi.Name(), "_test.go")
-		}, parser.ParseComments)
+		parsed, parseErr := parser.ParseDir( //nolint:staticcheck // build tags do not matter for a source scan
+			fset, path, func(fi os.FileInfo) bool {
+				return !strings.HasSuffix(fi.Name(), "_test.go")
+			}, parser.ParseComments)
 		if parseErr != nil {
 			return parseErr
 		}

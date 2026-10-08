@@ -89,9 +89,10 @@ func TestSecretsNeverCallsTheAutolaunchingEntryPoints(t *testing.T) {
 	}
 
 	fset := token.NewFileSet()
-	pkgs, err := parser.ParseDir(fset, ".", func(fi os.FileInfo) bool {
-		return !strings.HasSuffix(fi.Name(), "_test.go")
-	}, 0)
+	pkgs, err := parser.ParseDir( //nolint:staticcheck // build tags do not matter for a source scan
+		fset, ".", func(fi os.FileInfo) bool {
+			return !strings.HasSuffix(fi.Name(), "_test.go")
+		}, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
