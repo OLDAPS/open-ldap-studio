@@ -2,7 +2,7 @@
 # .githooks/tests/run.sh fails when the two differ.
 GOLANGCI_LINT_VERSION := v2.14.0
 
-.PHONY: build test test-integration lint fmt run gates tools hooks unhooks test-hooks
+.PHONY: build test test-integration lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
 
 build:
 	wails build -tags webkit2_41
@@ -49,3 +49,10 @@ unhooks:
 
 test-hooks:
 	bash .githooks/tests/run.sh
+
+# Spec tooling (scripts/spec, Python standard library only; run as `python3 file`).
+spec-check:
+	python3 scripts/spec/check.py --notes
+
+test-spec:
+	python3 -m unittest discover -s scripts/spec/tests
