@@ -1,0 +1,118 @@
+name: Package
+
+# Builds the application on each platform, wraps it in the thing a user
+# installs, and installs that thing on the runner to prove it starts. Called by
+# ci.yml (every pull request, so a reviewer can download a build) and by
+# release.yml (to produce the release assets), so the two cannot drift apart.
+#
+# All artefacts are unsigned. Signing and notarisation are T329/T330.
+
+on:
+  workflow_call:
+    inputs:
+      retention-days:
+        description: How long the uploaded installers are kept.
+        type: number
+        default: 7
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "22"
+  WAILS_VERSION: v2.15.0
+  NFPM_VERSION: v2.47.0
+  MODULE: github.com/open-ldap-studio/open-ldap-studio
+
+jobs:
+  package:
+    name: Package ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # 22.04, not latest: a binary links the glibc of the machine that
+          # built it, so building on the oldest supported runner keeps it
+          # installable on older distributions.
+          - { os: ubuntu-22.04, name: linux-amd64, goos: linux }
+          - { os: macos-latest, name: darwin-universal, goos: darwin }
+          - { os: windows-latest, name: windows-amd64, goos: windows }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # internal/version is the single source of the release number; Release
+      # Please rewrites it in the release pull request, so the build that runs
+      # after the merge reads the version being released.
+      - name: Resolve the version
+        id: meta
+        shell: bash
+        run: |
+          version=$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' internal/version/version.go)
+          [ -n "$version" ] || { echo "cannot read the version from internal/version/version.go" >&2; exit 1; }
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "ldflags=-X ${MODULE}/internal/version.Commit=${GITHUB_SHA::12} -X ${MODULE}/internal/version.Date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> "$GITHUB_OUTPUT"
+
+      - name: Install Linux build dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
+
+      - name: Install nfpm
+        if: runner.os == 'Linux'
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@${{ env.NFPM_VERSION }}
+
+      # makensis is not on the runner image.
+      - name: Install NSIS
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          choco install nsis -y --no-progress
+          "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      # main.go embeds frontend/dist, so it has to exist before wails compiles.
+      - name: Build the frontend
+        working-directory: ./frontend
+        run: npm ci && npm run build
+
+      - name: Build (Linux)
+        if: runner.os == 'Linux'
+        run: wails build -s -clean -tags webkit2_41 -ldflags "${{ steps.meta.outputs.ldflags }}"
+
+      - name: Build (macOS)
+        if: runner.os == 'macOS'
+        run: wails build -s -clean -platform darwin/universal -ldflags "${{ steps.meta.outputs.ldflags }}"
+
+      - name: Build (Windows, with the NSIS installer)
+        if: runner.os == 'Windows'
+        run: wails build -s -clean -nsis -ldflags "${{ steps.meta.outputs.ldflags }}"
+
+      - name: Package
+        shell: bash
+        run: bash scripts/package.sh "${{ matrix.goos }}" "${{ steps.meta.outputs.version }}" dist
+
+      - name: Install the package and run it
+        shell: bash
+        run: bash scripts/smoke-installer.sh "${{ matrix.goos }}" "${{ steps.meta.outputs.version }}" dist
+
+      - name: Upload installers
+        uses: actions/upload-artifact@v4
+        with:
+          name: installers-${{ matrix.name }}
+          path: dist/
+          if-no-files-found: error
+          retention-days: ${{ inputs.retention-days }}

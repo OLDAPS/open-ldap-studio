@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=Open LDAP Studio
+GenericName=LDAP Workbench
+Comment=A cross-platform LDAP workbench
+Exec=open-ldap-studio
+Icon=open-ldap-studio
+Terminal=false
+Categories=Development;Database;
+Keywords=ldap;directory;ldif;

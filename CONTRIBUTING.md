@@ -36,6 +36,26 @@ make test
 The integration tests (`make test-integration`) start a seeded OpenLDAP with
 testcontainers, so they need a running Docker daemon and fail without one.
 
+## Packaging
+
+CI turns each build into what a user installs and installs it on the runner to
+prove it starts (`.github/workflows/package.yml`, shared by pull requests and
+releases). Every pull request uploads the installers as workflow artifacts, so
+you can download and try one.
+
+| Platform | Artefact | Built with |
+|---|---|---|
+| Linux | `.deb` and a portable `.tar.gz` | [nfpm](https://nfpm.goreleaser.com/) (`config: build/linux/nfpm.yaml`) |
+| macOS | `.dmg` holding the universal `.app` | `hdiutil` |
+| Windows | NSIS `-setup.exe` | `wails build -nsis` (needs `makensis`) |
+
+All are **unsigned**, so macOS Gatekeeper and Windows SmartScreen will warn on
+first launch. Signing and notarisation are tracked as T329/T330. To package
+locally, run `wails build` for your platform, then
+`scripts/package.sh <linux|darwin|windows> <version> <outdir>`; the version
+comes from `internal/version/version.go`. A manual dry run of the whole release
+packaging is `gh workflow run release.yml`, which publishes nothing.
+
 ## Git hooks
 
 The repository ships hooks that run the same checks as CI on your machine, so a

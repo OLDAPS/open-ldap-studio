@@ -8,7 +8,10 @@
   "frontend:dev:serverUrl": "http://localhost:34115",
   "wailsjsdir": "./frontend",
   "info": {
+    "companyName": "OLDAPS",
     "productName": "Open LDAP Studio",
+    "productVersion": "0.1.0",
+    "copyright": "Copyright © Open LDAP Studio contributors",
     "comments": "A cross-platform LDAP workbench."
   }
 }
