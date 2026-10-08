@@ -35,7 +35,7 @@ func SetupHarness(ctx context.Context) (*Harness, error) {
 	}
 
 	// Wait, we need to seed the fixtures (T022).
-	// This can be done by parsing LDIFs from test/corpus and applying them via ldapsearch/ldapmodify 
+	// This can be done by parsing LDIFs from test/corpus and applying them via ldapsearch/ldapmodify
 	// or through the client. We leave the hook here for the tests to use.
 
 	return &Harness{

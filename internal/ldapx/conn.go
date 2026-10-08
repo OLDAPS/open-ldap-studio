@@ -188,6 +188,8 @@ func Dial(ctx context.Context, cfg DialConfig) (*Conn, error) {
 func (c *Conn) wrapTLS(ctx context.Context, raw net.Conn, cfg DialConfig) (net.Conn, error) {
 	p := cfg.Profile
 
+	// No ClientSessionCache is set, so sessions never resume and every handshake
+	// runs VerifyPeerCertificate; that is what G123 asks about.
 	tlsCfg := &tls.Config{
 		ServerName: p.Host,
 		MinVersion: tls.VersionTLS12,
@@ -196,7 +198,7 @@ func (c *Conn) wrapTLS(ctx context.Context, raw net.Conn, cfg DialConfig) (net.C
 		// certificate — rather than being an unconditional refusal or an
 		// unconditional acceptance.
 		InsecureSkipVerify: true, //nolint:gosec // verified in VerifyPeerCertificate below
-		VerifyPeerCertificate: func(rawCerts [][]byte, _ [][]*x509.Certificate) error {
+		VerifyPeerCertificate: func(rawCerts [][]byte, _ [][]*x509.Certificate) error { //nolint:gosec // G123: no ClientSessionCache, so no resumption (see above)
 			chain := make([]*x509.Certificate, 0, len(rawCerts))
 			for _, der := range rawCerts {
 				cert, err := x509.ParseCertificate(der)
@@ -290,7 +292,7 @@ func (c *Conn) Close() error {
 		close(stop)
 	}
 	if client != nil {
-		client.Close()
+		_ = client.Close()
 		return nil
 	}
 	if raw != nil {

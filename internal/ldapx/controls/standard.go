@@ -19,7 +19,10 @@ const (
 // Paging returns the simple paged results control (RFC 2696). The cookie
 // continues a previous page; a nil cookie starts a new one.
 func Paging(size int, cookie []byte) *ldap.ControlPaging {
-	c := ldap.NewControlPaging(uint32(size))
+	if size < 0 {
+		size = 0
+	}
+	c := ldap.NewControlPaging(uint32(size)) //nolint:gosec // size is clamped to non-negative above; page sizes are small
 	if len(cookie) > 0 {
 		c.SetCookie(cookie)
 	}

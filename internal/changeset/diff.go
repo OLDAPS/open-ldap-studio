@@ -1,5 +1,3 @@
 package changeset
 
-// diff creates the attribute-level diff between an old entry and a new entry.
-func diff() {
-}
+// Attribute-level diffing between an old and a new entry lands here.

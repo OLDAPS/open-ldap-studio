@@ -341,7 +341,8 @@ func TestEntryVersionFallsBackToADigestOfTheEntry(t *testing.T) {
 	if EntryVersion(a) == EntryVersion(b) {
 		t.Error("two different entries produced the same version; the guard would not fire")
 	}
-	if EntryVersion(a) != EntryVersion(a) {
+	first, second := EntryVersion(a), EntryVersion(a)
+	if first != second {
 		t.Error("the version is not stable for an unchanged entry")
 	}
 }

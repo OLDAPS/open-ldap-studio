@@ -92,11 +92,11 @@ var ErrUnavailable = errors.New("secrets: the platform credential service is una
 func Open() (Provider, string) {
 	p, err := openPlatform()
 	if err == nil {
-		if ok, reason := p.Available(); ok {
+		ok, reason := p.Available()
+		if ok {
 			return p, ""
-		} else {
-			return NewSession(), reason
 		}
+		return NewSession(), reason
 	}
 	return NewSession(), err.Error()
 }

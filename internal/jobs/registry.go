@@ -167,7 +167,7 @@ func (r *Registry) Start(parent context.Context, kind Kind, mode Mode, profileID
 		defer cancel()
 		err := fn(ctx, reporter)
 		reporter.flush()
-		r.finish(id, ctx, err)
+		r.finish(ctx, id, err)
 	}()
 
 	return id
@@ -175,7 +175,7 @@ func (r *Registry) Start(parent context.Context, kind Kind, mode Mode, profileID
 
 // finish computes the terminal state and emits exactly one job:finished
 // (contract E3).
-func (r *Registry) finish(id string, ctx context.Context, err error) {
+func (r *Registry) finish(ctx context.Context, id string, err error) {
 	r.mu.Lock()
 	e, ok := r.jobs[id]
 	if !ok || e.job.State.IsTerminal() {

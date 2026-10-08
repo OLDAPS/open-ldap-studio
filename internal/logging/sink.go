@@ -174,7 +174,7 @@ func Open(paths Paths) (*Logs, error) {
 	for _, k := range AllKinds {
 		s, err := OpenSink(filepath.Join(paths.Logs, string(k)+".log"), r)
 		if err != nil {
-			l.Close()
+			_ = l.Close()
 			return nil, err
 		}
 		l.sinks[k] = s

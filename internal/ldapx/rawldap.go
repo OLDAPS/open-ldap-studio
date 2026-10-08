@@ -147,7 +147,7 @@ func ldapResult(op *ber.Packet) (Result, error) {
 	}
 	return NewResult(
 		int(code),
-		string(op.Children[1].Data.Bytes()),
-		string(op.Children[2].Data.Bytes()),
+		op.Children[1].Data.String(),
+		op.Children[2].Data.String(),
 	), nil
 }

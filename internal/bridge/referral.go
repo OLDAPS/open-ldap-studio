@@ -2,6 +2,7 @@ package bridge
 
 import (
 	"errors"
+
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 )
 

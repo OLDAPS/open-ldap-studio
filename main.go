@@ -37,7 +37,7 @@ func main() {
 		slog.Error("cannot open log sinks", "err", err)
 		os.Exit(1)
 	}
-	defer logs.Close()
+	defer func() { _ = logs.Close() }()
 
 	app := bridge.New(logs)
 

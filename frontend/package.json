@@ -10,7 +10,8 @@
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
@@ -37,6 +38,7 @@
     "@typescript-eslint/eslint-plugin": "^8.31.0",
     "@typescript-eslint/parser": "^8.31.0",
     "@vitejs/plugin-react": "^4.4.0",
+    "@vitest/coverage-v8": "^5.0.3",
     "eslint": "^9.25.0",
     "eslint-plugin-react-hooks": "^5.2.0",
     "jsdom": "^26.1.0",

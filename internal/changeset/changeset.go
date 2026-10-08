@@ -102,7 +102,7 @@ type Input struct {
 }
 
 // DNs returns every distinct DN the change set touches, in first-seen order.
-func (cs ChangeSet) DNs() []string {
+func (cs ChangeSet) DNs() []string { //nolint:revive // exported name is part of the bridge contract
 	seen := make(map[string]struct{}, len(cs.Ops))
 	out := make([]string, 0, len(cs.Ops))
 	for _, op := range cs.Ops {
