@@ -136,6 +136,48 @@ jobs:
           path: coverage.out
           retention-days: 14
 
+  # The live tests in internal/bridge talk to a real, seeded OpenLDAP. Locally
+  # they skip when no directory is up; here REQUIRE_LIVE_DIRECTORY makes a
+  # fixture that failed to start fail the job instead of passing it vacuously.
+  functional:
+    name: Functional tests (live directory)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - name: Start the seeded directory
+        working-directory: ./server
+        run: docker compose up -d
+
+      - name: Wait for the directory to answer a search
+        run: |
+          for i in $(seq 1 60); do
+            status=$(docker inspect -f '{{.State.Health.Status}}' ldap 2>/dev/null || echo missing)
+            echo "ldap health: $status"
+            [ "$status" = healthy ] && exit 0
+            sleep 3
+          done
+          docker compose -f server/docker-compose.yml logs --no-color | tail -80
+          exit 1
+
+      - name: Live tests
+        env:
+          REQUIRE_LIVE_DIRECTORY: "1"
+        run: go test -count=1 -v -run Live ./internal/bridge/
+
+      - name: Directory logs on failure
+        if: failure()
+        run: docker compose -f server/docker-compose.yml logs --no-color | tail -200
+
+      - name: Stop the directory
+        if: always()
+        working-directory: ./server
+        run: docker compose down -v
+
   build:
     name: Build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -182,6 +224,32 @@ jobs:
       - name: Build (macOS, Windows)
         if: runner.os != 'Linux'
         run: wails build -clean
+
+      # The packaged binary has to start and say what it is. --version returns
+      # before the window opens, so no display is needed. The Windows build is a
+      # GUI-subsystem executable, which has no console of its own, so its output
+      # is redirected to a file rather than read from the terminal.
+      - name: Smoke test the built binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          expected=$(sed -n 's/^const Version = "\([^"]*\)".*/\1/p' internal/version/version.go)
+          case "$RUNNER_OS" in
+            Linux)   bin=build/bin/open-ldap-studio ;;
+            macOS)   bin=build/bin/open-ldap-studio.app/Contents/MacOS/open-ldap-studio ;;
+            Windows) bin=build/bin/open-ldap-studio.exe ;;
+          esac
+          if [ "$RUNNER_OS" = "Windows" ]; then
+            powershell -NoProfile -Command "Start-Process -FilePath '$bin' -ArgumentList '--version' -RedirectStandardOutput smoke.txt -Wait -NoNewWindow"
+            out=$(cat smoke.txt)
+          else
+            out=$("$bin" --version)
+          fi
+          echo "binary says: $out"
+          case "$out" in
+            "$expected "*) echo "version $expected confirmed" ;;
+            *) echo "expected a line starting with '$expected '"; exit 1 ;;
+          esac
 
       - name: Upload build
         uses: actions/upload-artifact@v4

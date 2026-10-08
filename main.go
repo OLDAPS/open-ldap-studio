@@ -8,6 +8,7 @@ package main
 import (
 	"context"
 	"embed"
+	"fmt"
 	"log/slog"
 	"os"
 
@@ -20,12 +21,20 @@ import (
 
 	"github.com/open-ldap-studio/open-ldap-studio/internal/bridge"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/logging"
+	"github.com/open-ldap-studio/open-ldap-studio/internal/version"
 )
 
 //go:embed all:frontend/dist
 var assets embed.FS
 
 func main() {
+	// Answered before anything touches the disk or the display, so a packaged
+	// build can be smoke-tested on a machine with neither.
+	if versionRequested(os.Args[1:]) {
+		fmt.Println(version.String())
+		return
+	}
+
 	paths, err := logging.DefaultPaths()
 	if err != nil {
 		slog.Error("cannot resolve application data directory", "err", err)

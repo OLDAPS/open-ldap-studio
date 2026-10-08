@@ -16,10 +16,12 @@ type OpenLDAPContainer struct {
 	Port int
 }
 
-// SetupOpenLDAP runs a bitnami/openldap container with cn=config enabled.
+// SetupOpenLDAP runs a bitnamilegacy/openldap container with cn=config enabled.
+// The image is pinned and matches server/docker-compose.yml: docker.io/bitnami
+// no longer resolves since Bitnami moved its free catalogue in 2025.
 func SetupOpenLDAP(ctx context.Context) (*OpenLDAPContainer, error) {
 	req := testcontainers.ContainerRequest{
-		Image:        "bitnami/openldap:latest",
+		Image:        "bitnamilegacy/openldap:2.6.10",
 		ExposedPorts: []string{"1389/tcp"},
 		Env: map[string]string{
 			"LDAP_ADMIN_USERNAME":        "admin",
