@@ -57,6 +57,21 @@ jobs:
       - name: Test the hooks
         run: bash .githooks/tests/run.sh
 
+  # The spec tooling and the consistency of the spec documents (scripts/spec).
+  # Python standard library only, so there is nothing to install: the runner's
+  # own python3 is enough. Offline: it reads the repository and nothing else.
+  spec:
+    name: Spec consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tool tests
+        run: python3 -m unittest discover -s scripts/spec/tests -v
+
+      - name: Spec consistency
+        run: python3 scripts/spec/check.py --notes
+
   frontend:
     name: Frontend lint, test, build
     runs-on: ubuntu-latest
