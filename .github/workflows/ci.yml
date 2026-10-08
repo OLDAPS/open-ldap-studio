@@ -89,7 +89,7 @@ jobs:
 
       - name: Verify generated bridge
         run: |
-          go run github.com/wailsapp/wails/v2/cmd/wails generate module
+          go run github.com/wailsapp/wails/v2/cmd/wails@v2.15.0 generate module
           git diff --exit-code -- frontend/wailsjs/go/
 
       - name: Install dependencies
