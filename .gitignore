@@ -42,3 +42,7 @@ frontend/coverage/
 
 # Downloaded by wails during an NSIS build
 build/windows/installer/tmp/
+
+# Python bytecode (the spec-kit scripts are run, not shipped)
+__pycache__/
+*.pyc
