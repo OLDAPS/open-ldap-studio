@@ -20,7 +20,10 @@ check() { # check <what> <output>
 
 case "$os" in
   linux)
-    deb="$dir/open-ldap-studio_${version}_linux-amd64.deb"
+    # apt treats a path without a leading ./ or / as a package name, so give
+    # it an absolute one. (Windows below needs the opposite: a relative path
+    # that PowerShell can resolve, not the MSYS path realpath would produce.)
+    deb=$(realpath "$dir/open-ldap-studio_${version}_linux-amd64.deb")
     sudo apt-get install -y "$deb"
     dpkg -s open-ldap-studio | sed -n '1,3p'
     test -f /usr/share/applications/open-ldap-studio.desktop
