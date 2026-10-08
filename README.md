@@ -21,8 +21,7 @@ read-only explorer: connect, browse the tree, search with a raw RFC 4515 filter.
 Editing, LDIF import and export, comparison and the rest follow after it.
 
 [`docs/MVP.md`](docs/MVP.md) maps the milestones onto the issue tracker and says
-where the MVP line falls. [`specs/`](specs/001-open-ldap-studio) holds the full
-v1 specification.
+where the MVP line falls. [`specs/`](specs) holds the full v1 specification.
 
 ## Installing
 
@@ -76,11 +75,16 @@ under `internal/`, and the frontend never talks to Wails except through one type
 client. Every LDAP write goes through a single preview-then-commit pipeline.
 [`docs/architecture.md`](docs/architecture.md) has the design.
 
+It is built spec-first: a constitution of five rules, a specification, a plan
+checked against those rules, and a task list that became the issue tracker.
+[`docs/spec-driven-development.md`](docs/spec-driven-development.md) explains the
+process, what has been done with it so far, and where the record has drifted.
+
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md). It covers the build prerequisites, the
-git hooks that run CI's lint, format and unit-test checks before you push
-(`make tools hooks`), and how packaging works. Commit subjects and pull request
+spec-driven workflow, the git hooks that run CI's lint, format and unit-test
+checks before you push (`make tools hooks`), and how packaging works. Commit subjects and pull request
 titles follow [Conventional Commits](https://www.conventionalcommits.org/);
 releases are cut from them.
 
