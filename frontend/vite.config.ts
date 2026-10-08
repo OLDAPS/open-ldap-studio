@@ -20,7 +20,10 @@ export default defineConfig({
     sourcemap: true,
   },
   server: {
-    port: 34115,
+    // Wails owns 34115. Vite and its HMR socket need their own endpoint.
+    host: '127.0.0.1',
+    port: 5173,
     strictPort: true,
+    hmr: { host: '127.0.0.1', port: 5173 },
   },
 });

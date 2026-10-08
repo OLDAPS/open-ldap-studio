@@ -1,7 +1,8 @@
 build/bin/
 node_modules/
 dist/
-wailsjs/
+# Go bindings are generated and checked in so frontend-only tools can use them.
+frontend/wailsjs/runtime/
 
 .env
 
