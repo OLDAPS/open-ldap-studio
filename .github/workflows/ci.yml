@@ -136,11 +136,11 @@ jobs:
           path: coverage.out
           retention-days: 14
 
-  # The live tests in internal/bridge talk to a real, seeded OpenLDAP. Locally
-  # they skip when no directory is up; here REQUIRE_LIVE_DIRECTORY makes a
-  # fixture that failed to start fail the job instead of passing it vacuously.
-  functional:
-    name: Functional tests (live directory)
+  # The live tests in internal/bridge start a seeded OpenLDAP with
+  # testcontainers (test/containers), so this job needs only the Docker daemon
+  # that ubuntu-latest already has. Without Docker they fail, not skip.
+  integration:
+    name: Integration tests (testcontainers)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -149,34 +149,8 @@ jobs:
         with:
           go-version-file: go.mod
 
-      - name: Start the seeded directory
-        working-directory: ./server
-        run: docker compose up -d
-
-      - name: Wait for the directory to answer a search
-        run: |
-          for i in $(seq 1 60); do
-            status=$(docker inspect -f '{{.State.Health.Status}}' ldap 2>/dev/null || echo missing)
-            echo "ldap health: $status"
-            [ "$status" = healthy ] && exit 0
-            sleep 3
-          done
-          docker compose -f server/docker-compose.yml logs --no-color | tail -80
-          exit 1
-
-      - name: Live tests
-        env:
-          REQUIRE_LIVE_DIRECTORY: "1"
-        run: go test -count=1 -v -run Live ./internal/bridge/
-
-      - name: Directory logs on failure
-        if: failure()
-        run: docker compose -f server/docker-compose.yml logs --no-color | tail -200
-
-      - name: Stop the directory
-        if: always()
-        working-directory: ./server
-        run: docker compose down -v
+      - name: Integration tests
+        run: go test -count=1 -v -tags=integration ./internal/bridge/ ./test/containers/...
 
   build:
     name: Build ${{ matrix.os }}

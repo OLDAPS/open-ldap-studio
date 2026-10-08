@@ -1,4 +1,4 @@
-.PHONY: build test test-functional test-integration lint fmt run gates
+.PHONY: build test test-integration lint fmt run gates
 
 build:
 	wails build -tags webkit2_41
@@ -7,19 +7,8 @@ test:
 	go test -short ./...
 	cd frontend && npm run test
 
-# The live tests in internal/bridge run against the seeded OpenLDAP fixture in
-# server/. REQUIRE_LIVE_DIRECTORY turns a missing fixture into a failure rather
-# than a skip; the fixture is torn down afterwards whether or not tests pass.
-test-functional:
-	cd server && docker compose up -d
-	@echo "waiting for the directory to answer a search..."
-	@for i in $$(seq 1 60); do \
-		[ "$$(docker inspect -f '{{.State.Health.Status}}' ldap 2>/dev/null)" = healthy ] && exit 0; \
-		sleep 3; \
-	done; echo "directory never became healthy"; docker logs ldap | tail -30; cd server && docker compose down -v; exit 1
-	REQUIRE_LIVE_DIRECTORY=1 go test -count=1 -run Live ./internal/bridge/; rc=$$?; \
-		cd server && docker compose down -v; exit $$rc
-
+# Needs a running Docker daemon: the live tests in internal/bridge start a
+# seeded OpenLDAP with testcontainers, and fail rather than skip without one.
 test-integration:
 	go test -tags=integration ./...
 
