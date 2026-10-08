@@ -1,3 +1,5 @@
+//go:build !bindings
+
 // Command open-ldap-studio is the Wails v2 entrypoint for Open LDAP Studio.
 //
 // This file owns exactly three things: the embedded frontend assets, the window,
@@ -50,7 +52,17 @@ func main() {
 
 	app := bridge.New(logs)
 
-	err = wails.Run(&options.App{
+	err = wails.Run(desktopOptions(app))
+	if err != nil {
+		slog.Error("application exited with an error", "err", err)
+		os.Exit(1)
+	}
+}
+
+// desktopOptions connects the native window to the embedded frontend and Go
+// lifecycle. It is also used by the shell contract test without opening a UI.
+func desktopOptions(app *bridge.Bridge) *options.App {
+	return &options.App{
 		Title:       "Open LDAP Studio",
 		Width:       1440,
 		Height:      900,
@@ -67,7 +79,7 @@ func main() {
 		OnShutdown: func(context.Context) {
 			app.Shutdown()
 		},
-		Bind: []any{app},
+		Bind: desktopBindings(app),
 		Linux: &linux.Options{
 			WindowIsTranslucent: false,
 			ProgramName:         "open-ldap-studio",
@@ -83,9 +95,5 @@ func main() {
 			WebviewIsTransparent: false,
 			DisableWindowIcon:    false,
 		},
-	})
-	if err != nil {
-		slog.Error("application exited with an error", "err", err)
-		os.Exit(1)
 	}
 }
