@@ -110,7 +110,7 @@ resolved here.
 
 #### Story #2 — Scaffold the Go module and repository layout
 - [ ] #113 T001 Initialise the Go module and pin the toolchain to Go 1.26 in `go.mod`
-- [ ] #115 T003 Create the `internal/` package skeleton with doc.go files declaring each package's boundary in `internal/{ldapx,changeset,ldif,dsml,schema,aci,credentials,secrets,profiles,trust,history,compare,jobs,exportx,commands,prefs,logging,bridge}/doc.go`
+- [x] #115 T003 Create the `internal/` package skeleton with doc.go files declaring each package's boundary in `internal/{ldapx,changeset,ldif,dsml,schema,aci,credentials,secrets,profiles,trust,history,compare,jobs,exportx,commands,prefs,logging,bridge}/doc.go`
 
 #### Story #3 — Bootstrap the desktop shell (Go core + webview)
 - [ ] #114 T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`

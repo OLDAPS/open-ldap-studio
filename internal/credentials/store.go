@@ -5,8 +5,7 @@ import (
 )
 
 // Store persists credential metadata (not the secrets themselves).
-type Store struct {
-}
+type Store struct{}
 
 func (s *Store) Save(c Credential) error {
 	return errors.New("not implemented")
