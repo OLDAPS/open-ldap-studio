@@ -46,6 +46,18 @@ jobs:
             style
             chore
 
+  # The local git hooks (.githooks/) mirror these gates. Their helpers and the
+  # commit-msg rule are plain bash, so they are tested here; the check also
+  # fails if the Makefile's pinned golangci-lint drifts from the one below.
+  hooks:
+    name: Git hooks tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Test the hooks
+        run: bash .githooks/tests/run.sh
+
   frontend:
     name: Frontend lint, test, build
     runs-on: ubuntu-latest
