@@ -78,9 +78,9 @@ type Job struct {
 	Total     int       `json:"total"`
 	Done      int       `json:"done"`
 	Message   string    `json:"message"`
-	StartedAt time.Time `json:"startedAt"`
+	StartedAt time.Time `json:"startedAt" ts_type:"string"`
 	// EndedAt is zero while the job runs.
-	EndedAt time.Time `json:"endedAt,omitzero"`
+	EndedAt time.Time `json:"endedAt,omitempty,omitzero" ts_type:"string"`
 	Summary string    `json:"summary,omitempty"`
 	// ReportPath names the file holding per-entry outcomes for a bulk run, and
 	// the sibling rejects LDIF where one was written (flow 7e).

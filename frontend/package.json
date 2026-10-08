@@ -5,11 +5,13 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint . --max-warnings 0",
     "format": "prettier --write \"src/**/*.{ts,tsx,css}\"",
     "test": "vitest run",
+    "test:dev": "node scripts/smoke-dev.mjs",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"
   },
@@ -44,7 +46,7 @@
     "jsdom": "^26.1.0",
     "prettier": "^3.5.3",
     "tailwindcss": "^4.3.3",
-    "typescript": "^5.9.0",
+    "typescript": "~5.9.3",
     "vite": "^7.0.0",
     "vitest": "^5.0.3"
   }

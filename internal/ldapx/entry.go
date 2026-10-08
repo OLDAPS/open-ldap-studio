@@ -25,7 +25,7 @@ type Attribute struct {
 	// Options are the attribute's options: binary, language tags. Values
 	// differing only by option are distinct attributes (FR-045).
 	Options []string `json:"options,omitempty"`
-	Values  [][]byte `json:"values"`
+	Values  [][]byte `json:"values" ts_type:"string[]"`
 	// IsOperational comes from the schema where one is readable. Where it is
 	// not, the attribute is still shown — an unknown classification is not a
 	// reason to hide data (FR-027).
@@ -93,7 +93,7 @@ func (e Entry) Attribute(description string) (Attribute, bool) {
 type Page struct {
 	Entries []Entry `json:"entries"`
 	// Cookie continues a paged result. Empty means there is no next page.
-	Cookie []byte `json:"cookie,omitempty"`
+	Cookie []byte `json:"cookie,omitempty" ts_type:"string"`
 	// LoadedCount is how many entries have been fetched so far across pages.
 	LoadedCount int `json:"loadedCount"`
 	// ServerLimit is the limit the server reported enforcing, 0 if none.
@@ -108,7 +108,7 @@ type PageRequest struct {
 	// Size of 0 uses the profile's page size, then the server's default.
 	Size int `json:"size"`
 	// Cookie continues a previous page.
-	Cookie []byte `json:"cookie,omitempty"`
+	Cookie []byte `json:"cookie,omitempty" ts_type:"string"`
 	// IncludeOperational requests operational attributes explicitly with '+'.
 	// They are never stripped from a response (FR-027).
 	IncludeOperational bool `json:"includeOperational"`

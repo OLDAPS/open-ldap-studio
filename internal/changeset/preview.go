@@ -34,8 +34,8 @@ type Token struct {
 	// EntryVersions is the concurrency guard: each DN's version is re-read at
 	// commit, and a mismatch aborts and forces re-confirmation (FR-052).
 	EntryVersions map[string]string `json:"entryVersions"`
-	IssuedAt      time.Time         `json:"issuedAt"`
-	ExpiresAt     time.Time         `json:"expiresAt"`
+	IssuedAt      time.Time         `json:"issuedAt" ts_type:"string"`
+	ExpiresAt     time.Time         `json:"expiresAt" ts_type:"string"`
 }
 
 // Preview is what the user confirms: the target, the diff, the count, and the

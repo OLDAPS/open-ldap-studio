@@ -43,14 +43,14 @@ type Operation struct {
 	Type OpType `json:"type"`
 	// Attribute carries the description and, for entry-level operations, the
 	// full attribute set.
-	Attribute ldapx.Attribute `json:"attribute,omitzero"`
+	Attribute ldapx.Attribute `json:"attribute,omitempty,omitzero"`
 	// Attributes is populated for OpAddEntry, which creates an entry whole.
 	Attributes []ldapx.Attribute `json:"attributes,omitempty"`
 	// Before and After are the attribute-level diff the preview renders. Both
 	// are bytes: a diff that stringified its values could not show a change
 	// that is only visible in the bytes (FR-039).
-	Before [][]byte `json:"before,omitempty"`
-	After  [][]byte `json:"after,omitempty"`
+	Before [][]byte `json:"before,omitempty" ts_type:"string[]"`
+	After  [][]byte `json:"after,omitempty" ts_type:"string[]"`
 
 	// Rename fields. KeepOldRDN is explicitly chosen, never defaulted (FR-048).
 	NewRDN      string `json:"newRdn,omitempty"`
