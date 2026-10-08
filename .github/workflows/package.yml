@@ -68,13 +68,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev
 
-      # makensis is not on the runner image.
+      # makensis is not on the runner image. Chocolatey's community feed
+      # sometimes answers 504, and choco then installs nothing while this step
+      # still ends green: wails build -nsis only warns "makensis not found" and
+      # the job fails a step later with a misleading "missing installer". So
+      # retry, and decide success by whether makensis is actually there.
       - name: Install NSIS
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          choco install nsis -y --no-progress
+          $makensis = "C:\Program Files (x86)\NSIS\makensis.exe"
+          foreach ($attempt in 1..3) {
+            choco install nsis -y --no-progress
+            if (Test-Path $makensis) { break }
+            Write-Host "NSIS is not installed after attempt $attempt of 3"
+            if ($attempt -lt 3) { Start-Sleep -Seconds (15 * $attempt) }
+          }
+          if (-not (Test-Path $makensis)) {
+            throw "NSIS could not be installed: $makensis does not exist (see the choco output above)"
+          }
           "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
+          & $makensis /VERSION
 
       # Wails publishes no prebuilt CLI, so `go install` compiles it from source
       # on every run (30-50 s on Linux). The installed binary is cached instead.
