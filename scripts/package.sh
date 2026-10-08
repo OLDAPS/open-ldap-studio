@@ -30,7 +30,8 @@ case "$os" in
       --target "$out/open-ldap-studio_${version}_linux-amd64.deb"
 
     # A portable copy for distributions without dpkg.
-    tar -C "$bin" -czf "$out/open-ldap-studio_${version}_linux-amd64.tar.gz" open-ldap-studio
+    tar -czf "$out/open-ldap-studio_${version}_linux-amd64.tar.gz" \
+      -C "$bin" open-ldap-studio -C "$root" LICENSE
     ;;
 
   darwin)
@@ -40,6 +41,7 @@ case "$os" in
     stage=$(mktemp -d)
     cp -R "$app" "$stage/"
     ln -s /Applications "$stage/Applications"
+    cp "$root/LICENSE" "$stage/LICENSE"
     hdiutil create -volname "Open LDAP Studio" -srcfolder "$stage" -ov -format UDZO \
       "$out/open-ldap-studio_${version}_darwin-universal.dmg"
     rm -rf "$stage"

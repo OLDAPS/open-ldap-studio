@@ -12,6 +12,7 @@ description: |
   A cross-platform LDAP workbench.
   Browse, search and edit LDAP directories.
 homepage: https://github.com/OLDAPS/open-ldap-studio
+license: Apache-2.0
 depends:
   - libgtk-3-0
   - libwebkit2gtk-4.1-0
@@ -27,5 +28,9 @@ contents:
       mode: 0644
   - src: build/appicon.png
     dst: /usr/share/icons/hicolor/512x512/apps/open-ldap-studio.png
+    file_info:
+      mode: 0644
+  - src: LICENSE
+    dst: /usr/share/doc/open-ldap-studio/LICENSE
     file_info:
       mode: 0644
