@@ -28,6 +28,8 @@ where the MVP line falls. [`specs/`](specs) holds the full v1 specification.
 Installers are published on the
 [Releases page](https://github.com/OLDAPS/open-ldap-studio/releases) once a
 release exists. Each release carries a `SHA256SUMS` file.
+[`docs/getting-started.md`](docs/getting-started.md) walks through downloading,
+verifying, installing and removing them on each platform.
 
 | Platform | Download |
 |---|---|
