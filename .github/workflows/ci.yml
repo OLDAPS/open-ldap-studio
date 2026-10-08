@@ -15,7 +15,6 @@ permissions:
   contents: read
 
 env:
-  GO_VERSION: "1.26"
   NODE_VERSION: "22"
   WAILS_VERSION: v2.15.0
 
@@ -117,7 +116,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
 
       - uses: actions/setup-node@v4
         with:
@@ -145,9 +144,9 @@ jobs:
       # can run on push too and drop only-new-issues.
       - name: Lint
         if: github.event_name == 'pull_request'
-        uses: golangci/golangci-lint-action@v6
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: v1.64.8
+          version: v2.5.0
           only-new-issues: true
 
       # Race detector and coverage run once, on Linux; the matrix covers the
@@ -174,7 +173,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
+          go-version-file: go.mod
 
       - uses: actions/setup-node@v4
         with:
