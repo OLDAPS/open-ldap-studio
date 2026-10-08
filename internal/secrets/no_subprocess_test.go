@@ -6,6 +6,7 @@ import (
 	"go/token"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 	"testing"
 )
@@ -121,6 +122,12 @@ func TestSecretsNeverCallsTheAutolaunchingEntryPoints(t *testing.T) {
 // deviation rests on: with no bus address, the store is unavailable and the
 // caller falls through to the session-only path. It never shells out.
 func TestUnsetBusAddressIsRecoverableNotASubprocess(t *testing.T) {
+	// The bus address only governs provider selection on Linux; macOS and
+	// Windows resolve to their own platform store and ignore it entirely.
+	if runtime.GOOS != "linux" {
+		t.Skip("the D-Bus session address is a Linux-only selector")
+	}
+
 	t.Setenv("DBUS_SESSION_BUS_ADDRESS", "")
 
 	p, reason := Open()
