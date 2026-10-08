@@ -163,6 +163,37 @@ jobs:
       - name: Integration tests
         run: go test -count=1 -v -tags=integration ./internal/bridge/ ./test/containers/...
 
+  # Supply-chain gates (T010): the module checksums, known vulnerabilities in the
+  # Go dependency graph, and high-severity advisories in the frontend's.
+  # govulncheck is pinned so a new scanner release cannot change a result on a
+  # pull request that touched nothing; bump it deliberately.
+  gates:
+    name: gates
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Install govulncheck
+        run: go install golang.org/x/vuln/cmd/govulncheck@v1.8.0
+
+      - name: Go mod verify
+        run: go mod verify
+
+      - name: Go vulnerability check
+        run: govulncheck ./...
+
+      - name: npm audit
+        working-directory: ./frontend
+        run: npm audit --audit-level=high
+
   # Unit tests on every platform: keychain_darwin.go, wincred_windows.go and
   # secretservice_linux.go each compile on one platform only, so Linux-only
   # testing never reaches two of the three credential bindings.
