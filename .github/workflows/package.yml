@@ -76,8 +76,36 @@ jobs:
           choco install nsis -y --no-progress
           "C:\Program Files (x86)\NSIS" | Out-File -FilePath $env:GITHUB_PATH -Append
 
+      # Wails publishes no prebuilt CLI, so `go install` compiles it from source
+      # on every run (30-50 s on Linux). The installed binary is cached instead.
+      # It depends on the OS, the architecture, the Wails version and the Go
+      # toolchain that built it, so all four are in the key. A cache written by
+      # a pull request is only visible to that pull request; one written by a
+      # run on main is visible to all of them.
+      - name: Locate the Wails CLI
+        id: wails
+        shell: bash
+        run: |
+          exe=wails
+          if [ "$RUNNER_OS" = "Windows" ]; then exe=wails.exe; fi
+          echo "file=$(go env GOPATH)/bin/$exe" >> "$GITHUB_OUTPUT"
+          echo "go=$(go env GOVERSION)" >> "$GITHUB_OUTPUT"
+
+      - name: Restore the Wails CLI
+        id: wails-cache
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.wails.outputs.file }}
+          key: wails-${{ runner.os }}-${{ runner.arch }}-${{ env.WAILS_VERSION }}-${{ steps.wails.outputs.go }}
+
       - name: Install Wails
+        if: steps.wails-cache.outputs.cache-hit != 'true'
         run: go install github.com/wailsapp/wails/v2/cmd/wails@${{ env.WAILS_VERSION }}
+
+      # Fails loudly if a restored binary does not run, instead of failing
+      # later inside the build with a less obvious error.
+      - name: Check the Wails CLI
+        run: wails version
 
       # main.go embeds frontend/dist, so it has to exist before wails compiles.
       - name: Build the frontend
