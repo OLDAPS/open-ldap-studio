@@ -49,7 +49,7 @@ T013–T016 make all three checkable by CI on day one. Write them first.
 **Purpose**: A buildable, testable, lintable skeleton on all three platforms.
 
 - [ ] T001 Initialise the Go module and pin the toolchain to Go 1.26 in `go.mod`
-- [ ] T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`
+- [x] T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`
 - [ ] T003 [P] Create the `internal/` package skeleton with doc.go files declaring each package's boundary in `internal/{ldapx,changeset,ldif,dsml,schema,aci,credentials,secrets,profiles,trust,history,compare,jobs,exportx,commands,prefs,logging,bridge}/doc.go`
 - [ ] T004 [P] Scaffold the React 19 + Vite 7 + TypeScript 5.9 frontend in `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`
 - [ ] T005 [P] Add Zustand, TanStack Virtual, and CodeMirror 6 dependencies in `frontend/package.json`

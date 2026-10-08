@@ -113,7 +113,7 @@ resolved here.
 - [ ] #115 T003 Create the `internal/` package skeleton with doc.go files declaring each package's boundary in `internal/{ldapx,changeset,ldif,dsml,schema,aci,credentials,secrets,profiles,trust,history,compare,jobs,exportx,commands,prefs,logging,bridge}/doc.go`
 
 #### Story #3 — Bootstrap the desktop shell (Go core + webview)
-- [ ] #114 T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`
+- [x] #114 T002 Scaffold the Wails v2 application entrypoint and window in `main.go` and `wails.json`
 - [ ] #116 T004 Scaffold the React 19 + Vite 7 + TypeScript 5.9 frontend in `frontend/package.json`, `frontend/vite.config.ts`, `frontend/tsconfig.json`
 - [ ] #117 T005 Add Zustand, TanStack Virtual, and CodeMirror 6 dependencies in `frontend/package.json`
 

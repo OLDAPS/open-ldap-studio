@@ -1,11 +1,16 @@
 # Keep in step with the golangci-lint version in .github/workflows/ci.yml;
 # .githooks/tests/run.sh fails when the two differ.
 GOLANGCI_LINT_VERSION := v2.14.0
+WAILS_FLAGS := $(if $(filter linux,$(shell go env GOOS)),-tags webkit2_41,)
 
-.PHONY: build test test-integration lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
+.PHONY: build bindings test test-integration lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
 
 build:
-	wails build -tags webkit2_41
+	wails build $(WAILS_FLAGS)
+
+# Generated from the objects bound in main.go; never edit wailsjs by hand.
+bindings:
+	wails generate module
 
 test:
 	go test -short ./...
@@ -25,7 +30,7 @@ fmt:
 	cd frontend && npm run format
 
 run:
-	wails dev -tags webkit2_41
+	wails dev $(WAILS_FLAGS)
 
 gates: lint test
 	govulncheck ./...
