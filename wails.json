@@ -8,7 +8,9 @@
   "frontend:dev:serverUrl": "auto",
   "wailsjsdir": "./frontend",
   "bindings": {
-    "ts_generation": { "outputType": "interfaces" }
+    "ts_generation": {
+      "outputType": "interfaces"
+    }
   },
   "info": {
     "companyName": "OLDAPS",
