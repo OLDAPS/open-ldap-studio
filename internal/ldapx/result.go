@@ -28,7 +28,7 @@ type Result struct {
 type Control struct {
 	OID      string `json:"oid"`
 	Critical bool   `json:"critical"`
-	Value    []byte `json:"value,omitempty"`
+	Value    []byte `json:"value,omitempty" ts_type:"string"`
 }
 
 // Result codes the specification names behaviour for. The rest are surfaced

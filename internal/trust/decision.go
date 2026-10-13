@@ -23,7 +23,7 @@ type Decision struct {
 	Fingerprint string    `json:"fingerprint"` // SHA-256, lowercase hex
 	Scope       Scope     `json:"scope"`
 	Chain       [][]byte  `json:"chain,omitempty"` // DER, retained so the user can review what they accepted
-	AcceptedAt  time.Time `json:"acceptedAt"`
+	AcceptedAt  time.Time `json:"acceptedAt" ts_type:"string"`
 	// Reason is the validation failure that was overridden.
 	Reason string `json:"reason"`
 }

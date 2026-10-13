@@ -5,7 +5,7 @@
 To build and run this project, you will need:
 - Go 1.26 or later
 - Node.js 22 or later
-- Wails CLI (`go install github.com/wailsapp/wails/v2/cmd/wails@latest`)
+- Wails CLI v2.15.0 (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0`)
 
 ### Platform-specific requirements
 
@@ -32,6 +32,25 @@ make build
 ```bash
 make test
 ```
+
+## Desktop development
+
+Run `wails doctor` to check the native dependencies, then `make run` to open the
+desktop window. Wails starts Vite and reloads frontend edits while preserving
+React state; edits to Go files rebuild the application. `make build` and
+`make run` select WebKitGTK 4.1 on Linux and use the native backend on macOS and
+Windows.
+
+`make bindings` regenerates the JavaScript calls and TypeScript interfaces in
+`frontend/wailsjs/go/` from the Go objects bound in `main.go`. Wails also runs
+this generation during `make build` and `make run`. Change the Go method or
+DTO and regenerate instead of maintaining declarations by hand.
+
+The generated `frontend/wailsjs/go/` files are checked in so frontend tools work
+without Go installed. CI regenerates them and rejects drift. The typed client
+in `frontend/src/bridge/` is the frontend's only entrypoint to these bindings.
+Run `cd frontend && npm run test:dev` to verify React Fast Refresh and the HMR
+WebSocket. Vite listens on port 5173; Wails owns its separate port 34115.
 
 The integration tests (`make test-integration`) start a seeded OpenLDAP with
 testcontainers, so they need a running Docker daemon and fail without one.

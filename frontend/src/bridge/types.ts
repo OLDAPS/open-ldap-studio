@@ -1,9 +1,19 @@
+import type {
+  bridge as generatedBridge,
+  connections,
+  commands,
+  changeset,
+  jobs,
+  ldapx,
+  profiles,
+} from '../../wailsjs/go/models';
+
 /**
  * The shapes the Go bridge speaks.
  *
- * These mirror internal/bridge and the contracts in
- * specs/001-open-ldap-studio/contracts/. Two rules from those contracts are
- * visible in the types themselves, and both are load-bearing:
+ * Transport models are generated from Go. Narrow string unions below describe
+ * frontend presentation states. Two rules from specs/001-open-ldap-studio/contracts/
+ * remain visible in the types:
  *
  *  - `Result` is returned on success as well as failure, and always carries
  *    the server's own `diagnosticMessage`. `interpretation` is additive; a UI
@@ -13,15 +23,7 @@
  *    back into the same bytes (SC-007).
  */
 
-export interface Result {
-  code: number;
-  matchedDn: string;
-  /** Verbatim, byte-for-byte as the server sent it. Never rewritten. */
-  diagnosticMessage: string;
-  /** Additive plain-language text, shown beside the message, never instead. */
-  interpretation: string;
-  referrals?: string[];
-}
+export type Result = ldapx.Result;
 
 export type ErrorCategory =
   | 'serverError'
@@ -34,65 +36,30 @@ export type ErrorCategory =
   | 'indeterminate'
   | 'cancelled';
 
-export interface Attribute {
-  type: string;
-  options?: string[];
-  /** Base64 across the bridge; decoded only where it can be re-encoded. */
-  values: string[];
-  isOperational: boolean;
-}
+export type Attribute = ldapx.Attribute;
 
 export type Children = 'yes' | 'no' | 'unknown';
 
-export interface Entry {
-  dn: string;
-  attributes: Attribute[];
-  hasChildren: Children;
-}
+export type Entry = Omit<ldapx.Entry, 'hasChildren'> & { hasChildren: Children };
 
-export interface Page {
-  entries: Entry[];
-  cookie?: string;
-  loadedCount: number;
-  serverLimit: number;
-  /** The server stopped early; the list shown is partial and says so. */
-  truncatedByServer: boolean;
-  result: Result;
-}
+export type Page = Omit<ldapx.Page, 'entries'> & { entries: Entry[] };
 
-export interface PageRequest {
-  size: number;
-  cookie?: string;
-  includeOperational: boolean;
-}
+export type PageRequest = ldapx.PageRequest;
 
 export type Encryption = 'none' | 'startTLS' | 'ldaps';
 export type BindMethod = 'anonymous' | 'simple' | 'external' | 'gssapi' | 'digestMD5' | 'cramMD5';
 
-export interface ProfileSummary {
-  id: string;
-  name: string;
-  folderId?: string;
-  host: string;
-  port: number;
-  encryption: Encryption;
-  readOnly: boolean;
-  tags?: string[];
-}
+export type ProfileSummary = Omit<profiles.Summary, 'encryption'> & { encryption: Encryption };
 
-export interface Profile extends ProfileSummary {
-  tls: { verifyCertificate: boolean; verifyHostname: boolean; clientCertRef?: string };
+export type Profile = Omit<
+  profiles.Profile,
+  'encryption' | 'bindMethod' | 'aliases' | 'referrals'
+> & {
+  encryption: Encryption;
   bindMethod: BindMethod;
-  bindDn: string;
-  /** A reference to a credential. Never a secret — there is nowhere to put one. */
-  credentialId?: string;
-  baseDn?: string;
-  timeouts: { connectMs: number; readMs: number };
-  limits: { sizeLimit: number; timeLimit: number; pageSize: number };
   aliases: 'never' | 'search' | 'find' | 'always';
   referrals: 'follow' | 'ignore' | 'ask';
-  schemaVersion: number;
-}
+};
 
 /**
  * What a connection test reports.
@@ -102,60 +69,20 @@ export interface Profile extends ProfileSummary {
  * host never answered" are different problems with different fixes, and
  * `result` keeps the server's own words for the second.
  */
-export interface TestResult {
-  reachable: boolean;
-  encrypted: boolean;
-  tlsVerified: boolean;
-  bound: boolean;
-  boundDn?: string;
-  vendorName?: string;
-  vendorVersion?: string;
-  namingContexts?: string[];
-  saslMechanisms?: string[];
-  result: Result;
-  /** A failure that happened before the server could answer at all. */
-  message?: string;
-}
+export type TestResult = generatedBridge.TestResult;
 
 export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'lost';
 
-export interface ConnState {
-  profileId: string;
-  state: ConnectionState;
-  boundDn: string;
-  serverIdentity: string;
-  tlsVerified: boolean;
-  encrypted: boolean;
-  readOnly: boolean;
-  production: boolean;
-  writesRequireConfirmation: boolean;
-  message?: string;
-}
+export type ConnState = Omit<connections.ConnState, 'state'> & { state: ConnectionState };
 
 export type JobState = 'running' | 'succeeded' | 'failed' | 'cancelled' | 'partiallyComplete';
 
-export interface Job {
-  id: string;
-  kind: string;
+export type Job = Omit<jobs.Job, 'mode' | 'state'> & {
   mode: 'execute' | 'dryRun';
   state: JobState;
-  profileId?: string;
-  total: number;
-  done: number;
-  message: string;
-  startedAt: string;
-  endedAt?: string;
-  summary?: string;
-  reportPath?: string;
-  error?: string;
-  paused: boolean;
-}
+};
 
-export interface Outcome {
-  dn: string;
-  status: 'succeeded' | 'failed' | 'skipped';
-  result?: Result;
-}
+export type Outcome = Omit<jobs.Outcome, 'status'> & { status: 'succeeded' | 'failed' | 'skipped' };
 
 export type OpType =
   | 'addAttr'
@@ -167,17 +94,7 @@ export type OpType =
   | 'deleteEntry'
   | 'rename';
 
-export interface Operation {
-  dn: string;
-  type: OpType;
-  attribute?: Attribute;
-  attributes?: Attribute[];
-  before?: string[];
-  after?: string[];
-  newRdn?: string;
-  newSuperior?: string;
-  keepOldRdn?: boolean;
-}
+export type Operation = Omit<changeset.Operation, 'type'> & { type: OpType };
 
 export type ChangeKind =
   | 'add'
@@ -191,104 +108,51 @@ export type ChangeKind =
   | 'schemaCommit'
   | 'configModify';
 
-export interface Warning {
-  severity: 'warning' | 'error';
-  dn?: string;
-  message: string;
-}
+export type Warning = Omit<changeset.Warning, 'severity'> & { severity: 'warning' | 'error' };
 
-export interface ChangeSetInput {
-  profileId: string;
+export type ChangeSetInput = Omit<changeset.Input, 'kind' | 'ops'> & {
   kind: ChangeKind;
   ops: Operation[];
-}
+};
 
-export interface ChangeSet extends ChangeSetInput {
-  id: string;
-  affectedCount: number;
+export type ChangeSet = Omit<changeset.ChangeSet, 'kind' | 'ops' | 'beforeState' | 'warnings'> & {
+  kind: ChangeKind;
+  ops: Operation[];
   beforeState?: Entry[];
   warnings?: Warning[];
-}
+};
 
-export interface PreviewToken {
-  token: string;
-  changeSetId: string;
-  entryVersions: Record<string, string>;
-  issuedAt: string;
-  expiresAt: string;
-}
+export type PreviewToken = changeset.Token;
 
-export interface ChangeSetPreview {
-  changeSet: ChangeSet;
-  profileName: string;
-  serverIdentity: string;
-  readOnly: boolean;
-  production: boolean;
-  token: PreviewToken;
-  reversible: boolean;
-}
+export type ChangeSetPreview = Omit<changeset.Preview, 'changeSet'> & { changeSet: ChangeSet };
 
-export interface FilterDiagnostic {
-  ok: boolean;
-  position: number;
-  message: string;
-}
+export type FilterDiagnostic = ldapx.FilterDiagnostic;
 
-export interface RootDSE {
-  namingContexts: string[];
-  supportedControl: string[];
-  supportedExtension: string[];
-  supportedSaslMechanisms: string[];
-  supportedLdapVersion: string[];
-  subschemaSubentry: string;
-  vendorName?: string;
-  vendorVersion?: string;
-  configContext?: string;
-  raw: Record<string, string[]>;
-}
+export type RootDSE = ldapx.RootDSE;
 
 export type Platform = 'linux' | 'darwin' | 'windows';
 export type MenuName =
   'File' | 'Edit' | 'Search' | 'LDAP' | 'Schema' | 'Credentials' | 'Preferences' | 'Help';
 
-export interface MenuItem {
-  commandId?: string;
-  label: string;
-  chord?: string;
-  group?: string;
-  enablement?: string;
-  destructive?: boolean;
-  items?: MenuItem[];
-}
+export type MenuItem = commands.MenuItem;
 
-export interface Command {
-  id: string;
-  label: string;
+export type Command = Omit<commands.Command, 'menu' | 'scope' | 'bindings'> & {
   menu?: MenuName;
-  path?: string[];
-  group?: string;
-  order: number;
   scope: 'global' | 'tree' | 'grid' | 'textEditor';
-  enablement: string;
   bindings?: Partial<Record<Platform, string>>;
-  destructive?: boolean;
-}
+};
 
-export interface CommandSet {
+export type CommandSet = Omit<
+  generatedBridge.CommandSet,
+  'platform' | 'menus' | 'tree' | 'commands'
+> & {
   platform: Platform;
   menus: MenuName[];
   tree: Record<MenuName, MenuItem[]>;
   commands: Command[];
-  bindings: Record<string, string>;
-}
+};
 
-export interface AppInfo {
-  version: string;
-  credentialStore: string;
-  credentialStoreReason: string;
-  updateChecksEnabled: boolean;
-  platform: Platform;
-}
+export type AppInfo = Omit<generatedBridge.AppInfo, 'platform'> & { platform: Platform };
 
 export interface TrustChallenge {
   host: string;
