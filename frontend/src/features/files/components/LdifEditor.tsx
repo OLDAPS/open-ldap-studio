@@ -32,7 +32,11 @@ export function LdifEditor() {
   const records = lines.filter((line) => line.startsWith('dn:')).length;
 
   return (
-    <Tabs value={tab} onValueChange={(value) => setTab(value as Tab)} className="gap-0">
+    <Tabs
+      value={tab}
+      onValueChange={(value) => setTab(value as Tab)}
+      className="min-h-0 flex-1 gap-0"
+    >
       <div className="toolbar">
         <span className="mono">
           {records === 0
@@ -66,9 +70,9 @@ export function LdifEditor() {
 
       <div className="split">
         <div className="split__main" style={{ borderRight: '1px solid var(--border-subtle)' }}>
-          <TabsContent value="source">
+          <TabsContent value="source" className="flex min-h-0 flex-col">
             <Textarea
-              className="source"
+              className="source field-sizing-fixed"
               value={text}
               spellCheck={false}
               aria-label="LDIF source"

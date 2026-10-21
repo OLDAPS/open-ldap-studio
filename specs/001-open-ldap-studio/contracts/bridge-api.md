@@ -11,6 +11,9 @@ integration tests drive — every user story is assertable here without touching
 - Methods returning `JobID` are asynchronous: they start a cancellable job and report through the
   events in [events.md](./events.md).
 - Everything else is a synchronous promise on the frontend side.
+- Wails v2 accepts one response value, optionally followed by an error. Replies
+  carrying both a value and an LDAP `Result` package them in a response struct;
+  three Go return values are not supported by the IPC dispatcher.
 - `Result` is `ldapx.Result` (see [../data-model.md](../data-model.md)) and is returned on success
   **and** failure. There is no method returning a bare boolean for a server operation.
 - Byte-valued attribute values cross as base64 with an explicit `isBinary` flag; they are never
@@ -58,8 +61,8 @@ Disconnect(profileID string) error
 ConnectionState(profileID string) (ConnState, error)   // state, boundDN, serverIdentity, tls badge
 TestConnection(p Profile) (JobID, error)       // real bind, nothing persisted
 
-WhoAmI(profileID string) (string, Result, error)       // FR-011
-RootDSE(profileID string) (RootDSE, error)             // FR-012
+WhoAmI(profileID string) (IdentityResult, error)       // { identity, result }, FR-011
+RootDSE(profileID string) (RootDSEResult, error)        // { rootDse, result }, FR-012
 ```
 
 `SaveProfile` returning an error on secret-bearing input is a contract, not a nicety — it is the
@@ -79,7 +82,7 @@ AssignCredential(credentialID, profileID string) error
 UnassignCredential(credentialID, profileID string) error
 CredentialAssignments(id string) ([]ProfileSummary, error)
 TestBind(credentialID, profileID string) (JobID, error)
-CredentialStoreStatus() (available bool, reason string, err error)
+CredentialStoreStatus() CredentialStatus              // { available, reason }
 ```
 
 No method returns a secret value. `secrets.Provider.Get` is internal and not bound.
@@ -103,10 +106,10 @@ fingerprint that event carried.
 
 ```go
 ListChildren(profileID, dn string, page PageRequest) (EntryPage, error)
-ReadEntry(profileID, dn string, opts ReadOptions) (Entry, Result, error)  // opts.IncludeOperational
-RefreshEntry(profileID, dn string) (Entry, Result, error)
+ReadEntry(profileID, dn string, opts ReadOptions) (EntryResult, error)  // { entry, result }, opts.IncludeOperational
+RefreshEntry(profileID, dn string, opts ReadOptions) (EntryResult, error)
 CountSubtree(profileID, dn string) (JobID, error)          // for delete confirmation
-GoToDN(profileID, dn string) (Entry, Result, error)
+GoToDN(profileID, dn string) (EntryResult, error)
 ```
 
 `EntryPage` carries `entries`, `cookie`, `loadedCount`, `serverLimit`, and `truncatedByServer` —

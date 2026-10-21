@@ -4,13 +4,14 @@
  * Calls delegate to Wails' generated module. Method names and argument tuples
  * come from its declarations; the frontend never maintains a second API.
  * This adapter checks availability and keeps presentation types and Wails'
- * multiple-result arrays at the IPC boundary.
+ * responses at the IPC boundary.
  *
  * The write surface is deliberately small: `preview` then `commit(token)`.
  * There is no `modify`, `add`, `delete` or `rename` here because there is none
  * on the Go side either (bridge-api.md Rule 1).
  */
 import * as generated from '../../wailsjs/go/bridge/Bridge';
+import type { bridge as responses } from '../../wailsjs/go/models';
 import type {
   AppInfo,
   ChangeSet,
@@ -68,9 +69,8 @@ async function call<T>(...[method, ...args]: BridgeCall): Promise<T> {
   if (!w.go?.bridge?.Bridge?.[method]) {
     throw new BridgeUnavailableError(method);
   }
-  // The union of generated signatures is checked by BridgeCall above. Wails
-  // declares multiple Go results as a union instead of the array it returns,
-  // so this is the single assertion where transport becomes presentation data.
+  // The union of generated signatures is checked by BridgeCall above. This is
+  // the single assertion where transport becomes presentation data.
   const bound = generated[method] as (...parameters: unknown[]) => Promise<T>;
   return await bound(...args);
 }
@@ -78,7 +78,10 @@ async function call<T>(...[method, ...args]: BridgeCall): Promise<T> {
 export const bridge = {
   // --- Application ---
   getAppInfo: () => call<AppInfo>('GetAppInfo'),
-  credentialStoreStatus: () => call<[boolean, string]>('CredentialStoreStatus'),
+  credentialStoreStatus: async (): Promise<[boolean, string]> => {
+    const reply = await call<responses.CredentialStatus>('CredentialStoreStatus');
+    return [reply.available, reply.reason];
+  },
 
   // --- Commands, menus and keymaps: one registry, three views ---
   getCommands: () => call<CommandSet>('GetCommands'),
@@ -127,18 +130,30 @@ export const bridge = {
   disconnect: (profileId: string) => call<void>('Disconnect', profileId),
   connectionState: (profileId: string) => call<ConnState>('ConnectionState', profileId),
   connectionStates: () => call<ConnState[]>('ConnectionStates'),
-  whoAmI: (profileId: string) => call<[string, Result]>('WhoAmI', profileId),
-  rootDSE: (profileId: string) => call<[RootDSE, Result]>('RootDSE', profileId),
+  whoAmI: async (profileId: string): Promise<[string, Result]> => {
+    const reply = await call<responses.IdentityResult>('WhoAmI', profileId);
+    return [reply.identity, reply.result];
+  },
+  rootDSE: async (profileId: string): Promise<[RootDSE, Result]> => {
+    const reply = await call<responses.RootDSEResult>('RootDSE', profileId);
+    return [reply.rootDse, reply.result];
+  },
 
   // --- Browsing ---
   listChildren: (profileId: string, dn: string, page: PageRequest) =>
     call<Page>('ListChildren', profileId, dn, page),
-  readEntry: (profileId: string, dn: string, includeOperational = false) =>
-    call<[Entry, Result]>('ReadEntry', profileId, dn, {
+  readEntry: async (
+    profileId: string,
+    dn: string,
+    includeOperational = false,
+  ): Promise<[Entry, Result]> => {
+    const reply = await call<responses.EntryResult>('ReadEntry', profileId, dn, {
       IncludeOperational: includeOperational,
       Attributes: [],
       ManageDsaIT: false,
-    }),
+    });
+    return [reply.entry as Entry, reply.result];
+  },
 
   /** Local only. It never contacts a server and never rewrites the filter. */
   validateFilter: (filter: string) => call<FilterDiagnostic>('ValidateFilter', filter),

@@ -153,12 +153,17 @@ func (b *Bridge) GetAppInfo() AppInfo {
 	}
 }
 
+type CredentialStatus struct {
+	Available bool   `json:"available"`
+	Reason    string `json:"reason"`
+}
+
 // CredentialStoreStatus reports whether the platform agent is reachable, and
 // why not when it is not. It never returns a secret.
-func (b *Bridge) CredentialStoreStatus() (bool, string) {
+func (b *Bridge) CredentialStoreStatus() CredentialStatus {
 	available, reason := b.secrets.Available()
 	if reason == "" {
 		reason = b.secretsReason
 	}
-	return available, reason
+	return CredentialStatus{Available: available, Reason: reason}
 }

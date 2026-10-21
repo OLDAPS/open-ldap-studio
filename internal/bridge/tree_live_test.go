@@ -35,10 +35,11 @@ func connectLive(t *testing.T) (*Bridge, string) {
 func TestLiveTreeRoots(t *testing.T) {
 	b, id := connectLive(t)
 
-	dse, _, err := b.RootDSE(id)
+	reply, err := b.RootDSE(id)
 	if err != nil {
 		t.Fatalf("RootDSE: %v", err)
 	}
+	dse := reply.RootDSE
 	if len(dse.NamingContexts) == 0 {
 		t.Fatal("no naming contexts; the tree would have no roots")
 	}
@@ -175,10 +176,11 @@ func TestLiveTreeCookieSurvivesJSON(t *testing.T) {
 func TestLiveTreeReadEntry(t *testing.T) {
 	b, id := connectLive(t)
 
-	entry, _, err := b.ReadEntry(id, "cn=jrivera,ou=people,"+liveBase, ldapx.ReadOptions{})
+	reply, err := b.ReadEntry(id, "cn=jrivera,ou=people,"+liveBase, ldapx.ReadOptions{})
 	if err != nil {
 		t.Fatalf("ReadEntry: %v", err)
 	}
+	entry := reply.Entry
 	if entry.DN == "" {
 		t.Fatal("entry has no DN")
 	}
@@ -209,21 +211,21 @@ func TestLiveTreeReadEntry(t *testing.T) {
 	}
 
 	// The non-ASCII entry must arrive intact, not mangled.
-	tomas, _, err := b.ReadEntry(id, "cn=tvasquez,ou=people,"+liveBase, ldapx.ReadOptions{})
+	tomas, err := b.ReadEntry(id, "cn=tvasquez,ou=people,"+liveBase, ldapx.ReadOptions{})
 	if err != nil {
 		t.Fatalf("ReadEntry tvasquez: %v", err)
 	}
-	sn, _ := tomas.Attribute("sn")
+	sn, _ := tomas.Entry.Attribute("sn")
 	if len(sn.Values) == 0 || string(sn.Values[0]) != "Vásquez" {
 		t.Errorf("sn = %q, want %q", string(sn.Values[0]), "Vásquez")
 	}
 
 	// The leading-space value must keep its space.
-	lchen, _, err := b.ReadEntry(id, "cn=lchen,ou=people,"+liveBase, ldapx.ReadOptions{})
+	lchen, err := b.ReadEntry(id, "cn=lchen,ou=people,"+liveBase, ldapx.ReadOptions{})
 	if err != nil {
 		t.Fatalf("ReadEntry lchen: %v", err)
 	}
-	description, _ := lchen.Attribute("description")
+	description, _ := lchen.Entry.Attribute("description")
 	if len(description.Values) == 0 || !strings.HasPrefix(string(description.Values[0]), " leading space") {
 		t.Errorf("description lost its leading space: %q", string(description.Values[0]))
 	}
@@ -235,19 +237,19 @@ func TestLiveTreeOperationalAttributes(t *testing.T) {
 	b, id := connectLive(t)
 	dn := "cn=jrivera,ou=people," + liveBase
 
-	plain, _, err := b.ReadEntry(id, dn, ldapx.ReadOptions{})
+	plain, err := b.ReadEntry(id, dn, ldapx.ReadOptions{})
 	if err != nil {
 		t.Fatalf("ReadEntry: %v", err)
 	}
-	if _, ok := plain.Attribute("modifyTimestamp"); ok {
+	if _, ok := plain.Entry.Attribute("modifyTimestamp"); ok {
 		t.Error("modifyTimestamp came back without being asked for")
 	}
 
-	withOp, _, err := b.ReadEntry(id, dn, ldapx.ReadOptions{IncludeOperational: true})
+	withOp, err := b.ReadEntry(id, dn, ldapx.ReadOptions{IncludeOperational: true})
 	if err != nil {
 		t.Fatalf("ReadEntry with operational: %v", err)
 	}
-	if _, ok := withOp.Attribute("modifyTimestamp"); !ok {
+	if _, ok := withOp.Entry.Attribute("modifyTimestamp"); !ok {
 		t.Error("modifyTimestamp missing even with operational attributes requested")
 	}
 }

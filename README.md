@@ -59,6 +59,12 @@ make test         # unit tests, Go and frontend
 make lint
 ```
 
+Run the live E2E tests with `make test-e2e` for a visible Chrome window, or
+`make test-e2e-headless` for headless Chromium. They build the real Wails app and
+start a disposable copy of the existing Docker LDAP fixture, with no mocks.
+On a server without a display, use `xvfb-run -a make test-e2e-headless`. See
+[Live E2E tests](docs/browser-testing.md) for Linux prerequisites, coverage and reports.
+
 To develop against a real directory, start the seeded OpenLDAP in
 [`server/`](server/README.md):
 
