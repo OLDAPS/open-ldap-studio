@@ -1,26 +1,38 @@
-"""Shared setup, browser error checks and reporting for the Python E2E suite."""
+"""Own the selected browser suite's environment once, including with xdist."""
 
 import shutil
 import subprocess
-from base64 import b64encode
-from collections.abc import Generator
 from pathlib import Path
 
 import pytest
-import pytest_html
-from playwright.sync_api import Page
-
-from e2e.fixtures.app import AppFixture
-from e2e.fixtures.server import PreviewServer
 
 SERVER = pytest.StashKey[object]()
 
 
 def pytest_addoption(parser: pytest.Parser) -> None:
     parser.addoption(
-        "--frontend-only", action="store_true", default=False,
-        help="Run the older synthetic frontend scenarios instead of live LDAP E2E tests",
+        "--suite", choices=("e2e", "ipc", "frontend"), default="e2e",
+        help="Select critical user journeys, Wails IPC integration, or synthetic frontend checks",
     )
+    parser.addoption(
+        "--frontend-only", action="store_true", default=False,
+        help="Alias for --suite frontend",
+    )
+
+
+def pytest_configure(config: pytest.Config) -> None:
+    if config.getoption("--frontend-only"):
+        if config.getoption("--suite") not in ("e2e", "frontend"):
+            raise pytest.UsageError("--frontend-only cannot be combined with --suite ipc")
+        config.option.suite = "frontend"
+    # Respect explicit pytest paths and node IDs. A suite changes only the
+    # default collection path, so -k, -m and --collect-only work normally.
+    if config.args_source == pytest.Config.ArgsSource.TESTPATHS:
+        config.args = {
+            "e2e": ["e2e/live/critical"],
+            "ipc": ["e2e/live/ipc"],
+            "frontend": ["browser_tests"],
+        }[config.getoption("--suite")]
 
 
 @pytest.hookimpl(optionalhook=True)
@@ -38,11 +50,12 @@ def pytest_sessionstart(session: pytest.Session) -> None:
     output_dir = Path(config.getoption("--output"))
     if output_dir.exists():
         shutil.rmtree(output_dir)
-    if config.getoption("--frontend-only"):
+    if config.getoption("--suite") == "frontend":
+        from browser_tests.fixtures.server import PreviewServer
         server = PreviewServer()
     else:
         from e2e.live.runtime import LiveSuite
-        server = LiveSuite()
+        server = LiveSuite(output_dir)
     config.stash[SERVER] = server
     try:
         server.start()
@@ -63,8 +76,8 @@ def pytest_sessionfinish(session: pytest.Session) -> None:
 
 @pytest.fixture(scope="session")
 def live_environment(pytestconfig: pytest.Config) -> dict:
-    if pytestconfig.getoption("--frontend-only"):
-        pytest.fail("Live tests require the real Wails/LDAP environment; omit --frontend-only")
+    if pytestconfig.getoption("--suite") == "frontend":
+        pytest.fail("Live tests require --suite e2e or --suite ipc")
     if hasattr(pytestconfig, "workerinput"):
         return pytestconfig.workerinput["live_suite"]
     return pytestconfig.stash[SERVER].worker_data()
@@ -77,37 +90,8 @@ def browser_context_args(browser_context_args: dict) -> dict:
 
 @pytest.fixture(scope="session", autouse=True)
 def delete_output_dir() -> None:
-    """The controller clears artifacts once, before workers or retries start.
+    """The controller clears artifacts before building the shared application.
 
-    Override Playwright's fixture: rerunning a fixture teardown failure can
-    recreate session fixtures and otherwise delete earlier attempts' artifacts.
+    Override Playwright's fixture so workers cannot delete that build or
+    artifacts from other tests.
     """
-
-
-@pytest.fixture
-def app(page: Page, output_path: str) -> Generator[AppFixture, None, None]:
-    errors: list[str] = []
-    page.on("pageerror", lambda error: errors.append(error.message))
-    fixture = AppFixture(page, output_path)
-    yield fixture
-    if errors:
-        fixture.capture_calls()
-    assert errors == [], "The application should not raise uncaught browser errors"
-
-
-@pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item: pytest.Item):
-    outcome = yield
-    report = outcome.get_result()
-    fixture = item.funcargs.get("app")
-    if fixture is None:
-        return
-    extras = getattr(report, "extras", [])
-    if report.when == "call":
-        for name, screenshot in fixture.screenshots:
-            extras.append(pytest_html.extras.png(b64encode(screenshot).decode("ascii"), name=name))
-        if report.failed:
-            fixture.capture_calls()
-    if report.failed and fixture.bridge_calls is not None:
-        extras.append(pytest_html.extras.json(fixture.bridge_calls, name="bridge-calls"))
-    report.extras = extras

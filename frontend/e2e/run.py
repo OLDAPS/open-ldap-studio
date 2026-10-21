@@ -19,7 +19,6 @@ def main() -> int:
     headed = "--headed" in args
     defaults = [
         "--numprocesses", "0" if headed else ("2" if os.environ.get("CI") else "4"),
-        "--reruns", "2" if os.environ.get("CI") else "0",
     ]
     if headed:
         defaults += [
@@ -28,8 +27,6 @@ def main() -> int:
             "--tracing", "on",
             "--video", "on",
         ]
-    if "--frontend-only" in args and not any(arg.startswith("e2e/") for arg in args):
-        defaults += ["e2e", "--ignore=e2e/live"]
     return pytest.main([*defaults, *args])
 
 

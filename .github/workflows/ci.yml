@@ -124,7 +124,7 @@ jobs:
         run: npm run build
 
   browser:
-    name: E2E tests (Wails, Chromium, real LDAP)
+    name: Critical E2E and IPC integration (real LDAP)
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -160,9 +160,10 @@ jobs:
       - name: Install browser
         run: python -m playwright install --with-deps chromium
 
-      - name: Run E2E scenarios against Docker LDAP
+      # Share one build and LDAP fixture while keeping the suites selectable.
+      - name: Run critical user journeys and IPC integration
         working-directory: ./frontend
-        run: xvfb-run -a npm run test:e2e:headless
+        run: xvfb-run -a npm run test:e2e:headless -- e2e/live/critical e2e/live/ipc
 
       - name: Upload browser report and failure traces
         if: ${{ !cancelled() }}

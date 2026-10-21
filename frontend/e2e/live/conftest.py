@@ -23,12 +23,12 @@ def ldap_service(live_environment: dict) -> LDAPService:
 def ldap_branch(ldap_service: LDAPService) -> Generator[str, None, None]:
     name = f"e2e-{uuid4().hex}"
     dn = f"ou={name},ou=archive,{BASE_DN}"
-    ldap_service.modify(
-        f"dn: {dn}\nchangetype: add\nobjectClass: organizationalUnit\nou: {name}\n\n"
-        f"dn: cn=subject,{dn}\nchangetype: add\nobjectClass: inetOrgPerson\n"
-        "cn: subject\nsn: Subject\ndescription: Original LDAP value\n"
-    )
+    ldap_service.modify(f"dn: {dn}\nchangetype: add\nobjectClass: organizationalUnit\nou: {name}\n")
     try:
+        ldap_service.modify(
+            f"dn: cn=subject,{dn}\nchangetype: add\nobjectClass: inetOrgPerson\n"
+            "cn: subject\nsn: Subject\ndescription: Original LDAP value\n"
+        )
         yield dn
     finally:
         ldap_service.delete_tree(dn)
@@ -54,18 +54,24 @@ def app(page: Page, native_app: NativeApp, ldap_service: LDAPService,
         # Wails 2.15.0's Svelte reload overlay uses the removed Svelte `new`
         # constructor API. Its failure is outside the app and does not affect
         # IPC; retain it as evidence while still failing on application errors.
+        stack = error.stack or error.message
         if (error.message == "Cannot read properties of null (reading 'nodes')"
-                and "/wails/ipc.js:" in error.stack.splitlines()[1]):
-            runtime_errors.append(error.stack)
+                and any("/wails/ipc.js:" in frame for frame in stack.splitlines()[1:2])):
+            runtime_errors.append(stack)
         else:
-            errors.append(error.stack)
+            errors.append(stack)
 
     page.on("pageerror", page_error)
-    fixture = LiveApp(page, native_app, ldap_service, Path(output_path))
-    yield fixture
-    if runtime_errors:
-        Path(output_path).mkdir(parents=True, exist_ok=True)
-        (Path(output_path) / "wails-runtime-errors.json").write_text(
-            json.dumps(runtime_errors, indent=2) + "\n", encoding="utf-8",
-        )
+    fixture = LiveApp(page, native_app, ldap_service)
+    try:
+        fixture.open()
+        yield fixture
+    finally:
+        for filename, captured in (("wails-runtime-errors.json", runtime_errors),
+                                   ("browser-errors.json", errors)):
+            if captured:
+                Path(output_path).mkdir(parents=True, exist_ok=True)
+                (Path(output_path) / filename).write_text(
+                    json.dumps(captured, indent=2) + "\n", encoding="utf-8",
+                )
     assert errors == [], f"Uncaught browser errors: {errors}"

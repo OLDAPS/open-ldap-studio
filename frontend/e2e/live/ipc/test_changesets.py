@@ -9,8 +9,8 @@ from base64 import b64decode, b64encode
 import pytest
 from playwright.sync_api import Error, Page, expect
 
-from .app import LiveApp
-from .runtime import LDAPService
+from e2e.live.app import LiveApp
+from e2e.live.runtime import LDAPService
 
 
 def attribute(name: str, *values: str) -> dict:
@@ -26,7 +26,6 @@ def modification(profile: dict, dn: str, value: str) -> dict:
 def test_preview_is_read_only_and_discarded_tokens_cannot_write(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     dn = f"cn=subject,{ldap_branch}"
     preview = app.rpc("Preview", modification(profile, dn, "Should not be written"), False)
@@ -45,7 +44,6 @@ def test_preview_is_read_only_and_discarded_tokens_cannot_write(
 def test_commit_modifies_real_ldap_and_consumes_the_preview_token(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     dn = f"cn=subject,{ldap_branch}"
     preview = app.rpc("Preview", modification(profile, dn, "Committed over Wails IPC"), False)
@@ -59,7 +57,6 @@ def test_commit_modifies_real_ldap_and_consumes_the_preview_token(
 def test_add_rename_move_and_delete_entry_in_real_ldap(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     dn = f"cn=created,{ldap_branch}"
     attributes = [attribute("objectClass", "inetOrgPerson"), attribute("cn", "created"),
@@ -87,7 +84,6 @@ def test_add_rename_move_and_delete_entry_in_real_ldap(
 def test_a_concurrent_ldap_write_invalidates_the_preview(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     dn = f"cn=subject,{ldap_branch}"
     preview = app.rpc("Preview", modification(profile, dn, "Stale change"), False)
@@ -106,7 +102,6 @@ def test_a_concurrent_ldap_write_invalidates_the_preview(
 def test_write_guards_refuse_real_ldap_changes_below_the_ui(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str, options: dict, error: str,
 ):
-    app.open()
     profile = app.connect(**options)
     dn = f"cn=subject,{ldap_branch}"
     with pytest.raises(Error, match=error):
@@ -117,7 +112,6 @@ def test_write_guards_refuse_real_ldap_changes_below_the_ui(
 def test_production_confirmation_allows_the_confirmed_real_write(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect(production=True)
     dn = f"cn=subject,{ldap_branch}"
     preview = app.rpc("Preview", modification(profile, dn, "Confirmed production write"), True)
@@ -129,7 +123,6 @@ def test_production_confirmation_allows_the_confirmed_real_write(
 def test_slapd_rejects_a_schema_invalid_entry_without_creating_it(
     app: LiveApp, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     dn = f"cn=invalid,{ldap_branch}"
     payload = {"profileId": profile["id"], "kind": "add", "ops": [
@@ -146,7 +139,6 @@ def test_slapd_rejects_a_schema_invalid_entry_without_creating_it(
 def test_multi_entry_commit_emits_real_job_progress_and_outcomes(
     app: LiveApp, page: Page, ldap_service: LDAPService, ldap_branch: str,
 ):
-    app.open()
     profile = app.connect()
     payload = {"profileId": profile["id"], "kind": "bulkModify", "ops": [
         {"dn": dn, "type": "replaceAttr", "attribute": attribute("description", "Bulk commit")}

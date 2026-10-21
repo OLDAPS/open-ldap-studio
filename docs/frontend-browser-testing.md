@@ -48,8 +48,8 @@ selected with pytest arguments:
 
 ```bash
 npm run test:browser:headless -- -k anonymous
-python3 -m pytest --frontend-only e2e/test_connections.py
-python3 -m pytest --frontend-only e2e --ignore=e2e/live --collect-only
+python3 -m pytest --suite frontend browser_tests/test_connections.py
+python3 -m pytest --suite frontend --collect-only
 ```
 
 Each scenario opens a fresh page and closes it when it finishes. The visible
@@ -58,9 +58,9 @@ smoke tests attach screenshots in both modes.
 
 The shared pytest setup builds the frontend and starts its preview server on
 **http://127.0.0.1:4173** automatically. This is separate from Vite development
-on port 5173 and Wails on port 34115. A preview server already running on 4173
-is reused locally; CI always starts a fresh server. Stop an existing preview
-server before a terminal run if you need a fresh build. The setup stops the
+on port 5173 and Wails on port 34115. An existing server on 4173
+causes a failure; stop it before running tests so every run builds and tests the
+current source. The setup stops the
 server it started after the run, including when scenarios fail.
 
 ## Implemented scenarios
@@ -71,27 +71,27 @@ browser exceptions. There are no fixed sleeps or screenshot baselines.
 
 | Screen or shared area | Scenarios | Test file |
 | --- | --- | --- |
-| Six main perspectives | Open Connections, DIT browser, Searches, Schema, LDIF & files and Preferences; verify their content, sidebar, menu, document strip, logs and status; attach screenshots; check navigation/status at the desktop minimum of 1024 × 640 | `frontend/e2e/test_shell.py` |
-| Connections | Empty workspace; connect → browse → disconnect; failed connect and retry; profile refresh errors; deletion accepted/cancelled | `frontend/e2e/test_connections.py` |
-| Connection wizard: network | Finish/check enablement; encryption and default port; custom numeric port; network check; check invalidation after edits; unreachable-server diagnostic | `frontend/e2e/test_connections.py` |
-| Connection wizard: authentication | Simple/anonymous selection; masked password; transport-dependent cleartext warnings; rejected bind code, diagnostic and interpretation | `frontend/e2e/test_connections.py` |
-| Connection wizard: browser/edit options | Complete all four pages; base DN discovery; limits, aliases, referrals, read-only and production options; password sent separately; anonymous save; failed save/retry; cancellation | `frontend/e2e/test_connections.py` |
-| Directory tree | Lazy children; explicit next page and cookie; refetch after collapse; local case-insensitive filtering; server truncation; failed branch; naming-context fallback and errors | `frontend/e2e/test_browser.py` |
-| Entry views and info | UTF-8 text; language options; binary description; multi-value folding; operational attributes/timestamps; LDIF fidelity; all entry tabs; document selection by keyboard and close; refresh; read error/retry | `frontend/e2e/test_browser.py` |
-| Searches | Raw filter and request fields; all scopes; aliases/referrals; empty results and disabled result actions | `frontend/e2e/test_workspaces.py` |
-| Schema | Empty-state guidance; element categories; schema search input | `frontend/e2e/test_workspaces.py` |
-| LDIF & files | Record counting; draft retained across Source/Diff/Report tabs; default dry run; continue-on-error checkbox; disconnected execution disabled; named target | `frontend/e2e/test_workspaces.py` |
-| Nine preference panes | Appearance, Browser & tree, Entry editor, Value editors, LDIF & text editors, Connections & timeouts, Credentials & security, Keyboard shortcuts, Updates & about | `frontend/e2e/test_preferences.py` |
-| Preference interactions | Settings search/no results; live themes/density and navigation; system appearance; explicit tree fetch default; line endings; command filtering/bindings; update checks off | `frontend/e2e/test_preferences.py` |
-| Shell safety and menus | Connection-based menu enablement; read-only delete disabled; production, cleartext, anonymous and TLS badges; navigation without a backend; panel selection/collapse | `frontend/e2e/test_shell.py` |
-| Progress, errors and console | Job progress/completion; cancellation; failure diagnostics; capability notice deduplication; credential-store fallback notice; connection loss/reconnect | `frontend/e2e/test_events.py` |
+| Six main perspectives | Open Connections, DIT browser, Searches, Schema, LDIF & files and Preferences; verify their content, sidebar, menu, document strip, logs and status; attach screenshots; check navigation/status at the desktop minimum of 1024 × 640 | `frontend/browser_tests/test_shell.py` |
+| Connections | Empty workspace; connect → browse → disconnect; failed connect and retry; profile refresh errors; deletion accepted/cancelled | `frontend/browser_tests/test_connections.py` |
+| Connection wizard: network | Finish/check enablement; encryption and default port; custom numeric port; network check; check invalidation after edits; unreachable-server diagnostic | `frontend/browser_tests/test_connections.py` |
+| Connection wizard: authentication | Simple/anonymous selection; masked password; transport-dependent cleartext warnings; rejected bind code, diagnostic and interpretation | `frontend/browser_tests/test_connections.py` |
+| Connection wizard: browser/edit options | Complete all four pages; base DN discovery; limits, aliases, referrals, read-only and production options; password sent separately; anonymous save; failed save/retry; cancellation | `frontend/browser_tests/test_connections.py` |
+| Directory tree | Lazy children; explicit next page and cookie; refetch after collapse; local case-insensitive filtering; server truncation; failed branch; naming-context fallback and errors | `frontend/browser_tests/test_browser.py` |
+| Entry views and info | UTF-8 text; language options; binary description; multi-value folding; operational attributes/timestamps; LDIF fidelity; all entry tabs; document selection by keyboard and close; refresh; read error/retry | `frontend/browser_tests/test_browser.py` |
+| Searches | Raw filter and request fields; all scopes; aliases/referrals; empty results and disabled result actions | `frontend/browser_tests/test_workspaces.py` |
+| Schema | Empty-state guidance; element categories; schema search input | `frontend/browser_tests/test_workspaces.py` |
+| LDIF & files | Record counting; draft retained across Source/Diff/Report tabs; default dry run; continue-on-error checkbox; disconnected execution disabled; named target | `frontend/browser_tests/test_workspaces.py` |
+| Nine preference panes | Appearance, Browser & tree, Entry editor, Value editors, LDIF & text editors, Connections & timeouts, Credentials & security, Keyboard shortcuts, Updates & about | `frontend/browser_tests/test_preferences.py` |
+| Preference interactions | Settings search/no results; live themes/density and navigation; system appearance; explicit tree fetch default; line endings; command filtering/bindings; update checks off | `frontend/browser_tests/test_preferences.py` |
+| Shell safety and menus | Connection-based menu enablement; read-only delete disabled; production, cleartext, anonymous and TLS badges; navigation without a backend; panel selection/collapse | `frontend/browser_tests/test_shell.py` |
+| Progress, errors and console | Job progress/completion; cancellation; failure diagnostics; capability notice deduplication; credential-store fallback notice; connection loss/reconnect | `frontend/browser_tests/test_events.py` |
 
 ## Backend boundary
 
 The production application calls Go through generated Wails bindings. A regular
 browser has no native bridge. Tests inject `window.go.bridge.Bridge` and the
 runtime event interface **before** the app loads, using
-the init script in `frontend/e2e/fixtures/bridge.py`. This small script executes
+the init script in `frontend/browser_tests/fixtures/bridge.py`. This small script executes
 in the browser's JavaScript runtime, with all data and scenario control supplied
 by Python. The real React components, state, layouts,
 generated binding calls and event subscriptions run normally. No production
@@ -130,7 +130,7 @@ buttons are not treated as successful completion of these operations.
 
 ## Reports and CI
 
-The `browser` CI job runs the live LDAP suite documented in
+The `browser` CI job runs the critical E2E and Wails IPC suites documented in
 [Live E2E tests](browser-testing.md). These frontend-only checks are available
 locally with the commands above.
 Pytest validates markers strictly in both modes.

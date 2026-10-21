@@ -53,7 +53,8 @@ Keep the virtual environment active when running either E2E command from `fronte
 - `npm run test:e2e` opens a visible Chrome window and runs one scenario at a
   time with slower actions so you can follow the application navigation.
 - `npm run test:e2e:headless` runs the same scenarios without a visible window
-  and is the command used by CI. Both commands run the same live LDAP scenarios.
+  and runs the critical user journeys. CI also runs the separate Wails IPC
+  integration suite, selectable with `npm run test:ipc:headless`.
 
 Without a desktop display, use `xvfb-run -a npm run test:e2e:headless`. The
 runner creates and removes the LDAP containers and volumes automatically.

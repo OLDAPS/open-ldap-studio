@@ -3,7 +3,7 @@
 GOLANGCI_LINT_VERSION := v2.14.0
 WAILS_FLAGS := $(if $(filter linux,$(shell go env GOOS)),-tags webkit2_41,)
 
-.PHONY: build bindings test test-integration test-e2e test-e2e-headless test-browser test-browser-headless lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
+.PHONY: build bindings test test-integration test-e2e test-e2e-headless test-ipc test-ipc-headless test-browser test-browser-headless lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
 
 build:
 	wails build $(WAILS_FLAGS)
@@ -28,6 +28,12 @@ test-e2e:
 
 test-e2e-headless:
 	cd frontend && npm run test:e2e:headless
+
+test-ipc:
+	cd frontend && npm run test:ipc
+
+test-ipc-headless:
+	cd frontend && npm run test:ipc:headless
 
 test-browser:
 	cd frontend && npm run test:browser

@@ -28,9 +28,7 @@ class PreviewServer:
 
     def start(self) -> None:
         if is_ready():
-            if os.environ.get("CI"):
-                raise RuntimeError(f"CI requires a fresh preview server, but {BASE_URL} is in use")
-            return
+            raise RuntimeError(f"Stop the server at {BASE_URL} before running frontend browser checks")
 
         npm = shutil.which("npm.cmd" if os.name == "nt" else "npm")
         if npm is None:

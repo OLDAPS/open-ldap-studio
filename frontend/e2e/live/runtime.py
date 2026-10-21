@@ -127,9 +127,9 @@ class LDAPService:
 
 
 class LiveSuite:
-    def __init__(self) -> None:
+    def __init__(self, output_dir: Path) -> None:
         self.ldap = LDAPService()
-        self.build_dir = FRONTEND / "test-results" / "application"
+        self.build_dir = output_dir.resolve() / "application"
         self.binary = self.build_dir / ("open-ldap-studio.exe" if os.name == "nt" else "open-ldap-studio")
         self.log_path = REPORT / "application-build.log"
 
@@ -183,7 +183,7 @@ class NativeApp:
         }
         if os.environ.get("DISPLAY"):
             environment["GDK_BACKEND"] = "x11"
-        with self.log_path.open("w", encoding="utf-8") as log:
+        with self.log_path.open("a", encoding="utf-8") as log:
             self.process = subprocess.Popen(
                 [str(self.binary), "-assetdir", str(FRONTEND / "dist"),
                  "-devserver", f"127.0.0.1:{port}", "-loglevel", "Error"],

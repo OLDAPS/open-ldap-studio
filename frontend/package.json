@@ -16,8 +16,10 @@
     "test:coverage": "vitest run --coverage",
     "test:e2e": "python3 e2e/run.py --headed",
     "test:e2e:headless": "python3 e2e/run.py",
-    "test:browser": "python3 e2e/run.py --frontend-only --headed",
-    "test:browser:headless": "python3 e2e/run.py --frontend-only"
+    "test:ipc": "python3 e2e/run.py --suite ipc --headed",
+    "test:ipc:headless": "python3 e2e/run.py --suite ipc",
+    "test:browser": "python3 e2e/run.py --suite frontend --headed",
+    "test:browser:headless": "python3 e2e/run.py --suite frontend"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",
