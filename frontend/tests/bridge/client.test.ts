@@ -59,11 +59,11 @@ describe('generated desktop bridge', () => {
       diagnosticMessage: '  server diagnostic\n',
       interpretation: 'No such object',
     };
-    const reply = [entry, result];
+    const reply = { entry, result };
     const readEntry = vi.fn().mockResolvedValue(reply);
     bind({ ReadEntry: readEntry });
 
-    expect(await bridge.readEntry('profile-1', 'dc=example', true)).toBe(reply);
+    expect(await bridge.readEntry('profile-1', 'dc=example', true)).toEqual([entry, result]);
     expect(readEntry).toHaveBeenCalledWith('profile-1', 'dc=example', {
       IncludeOperational: true,
       Attributes: [],

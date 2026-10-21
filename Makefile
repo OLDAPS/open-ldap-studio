@@ -3,7 +3,7 @@
 GOLANGCI_LINT_VERSION := v2.14.0
 WAILS_FLAGS := $(if $(filter linux,$(shell go env GOOS)),-tags webkit2_41,)
 
-.PHONY: build bindings test test-integration lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
+.PHONY: build bindings test test-integration test-e2e test-e2e-headless test-browser test-browser-headless lint fmt run gates tools hooks unhooks test-hooks spec-check test-spec
 
 build:
 	wails build $(WAILS_FLAGS)
@@ -20,6 +20,20 @@ test:
 # seeded OpenLDAP with testcontainers, and fail rather than skip without one.
 test-integration:
 	go test -tags=integration ./...
+
+# Real Wails IPC and a disposable Docker Compose LDAP service. On a headless
+# Linux host, run with `xvfb-run -a make test-e2e-headless`.
+test-e2e:
+	cd frontend && npm run test:e2e
+
+test-e2e-headless:
+	cd frontend && npm run test:e2e:headless
+
+test-browser:
+	cd frontend && npm run test:browser
+
+test-browser-headless:
+	cd frontend && npm run test:browser:headless
 
 lint:
 	golangci-lint run

@@ -19,6 +19,22 @@ export namespace bridge {
 	    commands: commands.Command[];
 	    bindings: Record<string, string>;
 	}
+	export interface CredentialStatus {
+	    available: boolean;
+	    reason: string;
+	}
+	export interface EntryResult {
+	    entry: ldapx.Entry;
+	    result: ldapx.Result;
+	}
+	export interface IdentityResult {
+	    identity: string;
+	    result: ldapx.Result;
+	}
+	export interface RootDSEResult {
+	    rootDse: ldapx.RootDSE;
+	    result: ldapx.Result;
+	}
 	export interface SavedSearch {
 	    id: string;
 	    name: string;

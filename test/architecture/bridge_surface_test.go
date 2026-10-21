@@ -22,6 +22,17 @@ func boundMethods() []reflect.Method {
 	return methods
 }
 
+// Wails v2 silently returns null for three or more outputs, even though direct
+// Go calls work. Compound replies must use one response value plus error.
+func TestBoundMethodsDoNotLoseExtraReturnValues(t *testing.T) {
+	for _, method := range boundMethods() {
+		signature := method.Type
+		if signature.NumOut() > 2 {
+			t.Errorf("%s returns %d values; Wails supports one response plus error", method.Name, signature.NumOut())
+		}
+	}
+}
+
 // Contract C11 — no vault method exists on the bound surface.
 //
 // The wireframe's credentials area specified a vault: encrypted-file storage,

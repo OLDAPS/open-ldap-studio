@@ -4,7 +4,7 @@ import tsparser from '@typescript-eslint/parser';
 import reactHooks from 'eslint-plugin-react-hooks';
 
 export default [
-  { ignores: ['dist', 'node_modules', 'wailsjs'] },
+  { ignores: ['dist', 'node_modules', 'wailsjs', 'playwright-report', 'test-results'] },
   js.configs.recommended,
   {
     files: ['**/*.{ts,tsx}'],

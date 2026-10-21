@@ -101,6 +101,16 @@ func (b *Bridge) probe(p profiles.Profile, secret string, wantBind bool) (TestRe
 		}
 		out.Bound = true
 		out.BoundDN = conn.BoundDN()
+	} else {
+		// Dial leaves the raw transport available for SASL. Activate the LDAP
+		// client through an explicit anonymous bind before reading the Root
+		// DSE; a network-only check otherwise searches an unopened client.
+		result, bindErr := ldapx.Bind(ctx, conn, ldapx.BindRequest{Method: profiles.BindAnonymous})
+		out.Result = result
+		if bindErr != nil {
+			out.Message = bindErr.Error()
+			return out, nil
+		}
 	}
 
 	// The Root DSE is readable anonymously on most servers, so it is worth

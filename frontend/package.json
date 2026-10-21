@@ -13,7 +13,11 @@
     "test": "vitest run",
     "test:dev": "node scripts/smoke-dev.mjs",
     "test:watch": "vitest",
-    "test:coverage": "vitest run --coverage"
+    "test:coverage": "vitest run --coverage",
+    "test:e2e": "python3 e2e/run.py --headed",
+    "test:e2e:headless": "python3 e2e/run.py",
+    "test:browser": "python3 e2e/run.py --frontend-only --headed",
+    "test:browser:headless": "python3 e2e/run.py --frontend-only"
   },
   "dependencies": {
     "@base-ui/react": "^1.8.0",

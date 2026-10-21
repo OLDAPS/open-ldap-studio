@@ -169,7 +169,7 @@ export function useDitTreeViewModel(
             [parentDn]: {
               children: [...base, ...added],
               cookie: page.cookie || undefined,
-              loaded: page.loadedCount || base.length + added.length,
+              loaded: base.length + added.length,
               serverLimit: page.serverLimit ?? 0,
               truncated: Boolean(page.truncatedByServer),
               loading: false,
