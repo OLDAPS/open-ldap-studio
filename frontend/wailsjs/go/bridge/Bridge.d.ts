@@ -3,9 +3,9 @@
 import {commands} from '../models';
 import {ldapx} from '../models';
 import {connections} from '../models';
+import {bridge} from '../models';
 import {trust} from '../models';
 import {profiles} from '../models';
-import {bridge} from '../models';
 import {credentials} from '../models';
 import {jobs} from '../models';
 import {changeset} from '../models';
@@ -40,7 +40,7 @@ export function CreateSchemaProject():Promise<void>;
 
 export function CredentialAssignments(arg1:string):Promise<Array<string>>;
 
-export function CredentialStoreStatus():Promise<boolean|string>;
+export function CredentialStoreStatus():Promise<bridge.CredentialStatus>;
 
 export function DecideTrust(arg1:string,arg2:number,arg3:string,arg4:trust.Scope,arg5:string):Promise<void>;
 
@@ -88,7 +88,7 @@ export function GetPreferences():Promise<Record<string, any>>;
 
 export function GetProfile(arg1:string):Promise<profiles.Profile>;
 
-export function GoToDN(arg1:string,arg2:string):Promise<ldapx.Entry>;
+export function GoToDN(arg1:string,arg2:string):Promise<bridge.EntryResult>;
 
 export function HashPassword():Promise<void>;
 
@@ -156,7 +156,7 @@ export function PurgeCache():Promise<void>;
 
 export function ReadConfigTree():Promise<void>;
 
-export function ReadEntry(arg1:string,arg2:string,arg3:ldapx.ReadOptions):Promise<ldapx.Entry>;
+export function ReadEntry(arg1:string,arg2:string,arg3:ldapx.ReadOptions):Promise<bridge.EntryResult>;
 
 export function ReadSchema():Promise<void>;
 
@@ -164,7 +164,7 @@ export function ReadValue():Promise<void>;
 
 export function Reconcile():Promise<void>;
 
-export function RefreshEntry(arg1:string,arg2:string,arg3:ldapx.ReadOptions):Promise<ldapx.Entry>;
+export function RefreshEntry(arg1:string,arg2:string,arg3:ldapx.ReadOptions):Promise<bridge.EntryResult>;
 
 export function RenderACI():Promise<void>;
 
@@ -176,7 +176,7 @@ export function ReversalAvailable():Promise<boolean|string>;
 
 export function RevokeTrustDecision(arg1:string):Promise<void>;
 
-export function RootDSE(arg1:string):Promise<ldapx.RootDSE>;
+export function RootDSE(arg1:string):Promise<bridge.RootDSEResult>;
 
 export function SaveBookmark(arg1:string,arg2:bridge.Bookmark):Promise<bridge.Bookmark>;
 
@@ -232,4 +232,4 @@ export function ValidateLDIF():Promise<void>;
 
 export function VerifyPassword():Promise<void>;
 
-export function WhoAmI(arg1:string):Promise<string>;
+export function WhoAmI(arg1:string):Promise<bridge.IdentityResult>;

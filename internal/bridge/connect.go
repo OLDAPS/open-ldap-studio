@@ -104,21 +104,23 @@ func (b *Bridge) ConnectionStates() []ConnState {
 }
 
 // WhoAmI asks the server which identity it believes is bound (FR-011).
-func (b *Bridge) WhoAmI(profileID string) (string, ldapx.Result, error) {
+func (b *Bridge) WhoAmI(profileID string) (IdentityResult, error) {
 	conn, err := b.conns.Conn(profileID)
 	if err != nil {
-		return "", ldapx.Result{}, err
+		return IdentityResult{}, err
 	}
-	return ldapx.WhoAmI(b.context(), conn)
+	identity, result, err := ldapx.WhoAmI(b.context(), conn)
+	return IdentityResult{Identity: identity, Result: result}, err
 }
 
 // RootDSE returns what the server publishes about itself (FR-012).
-func (b *Bridge) RootDSE(profileID string) (ldapx.RootDSE, ldapx.Result, error) {
+func (b *Bridge) RootDSE(profileID string) (RootDSEResult, error) {
 	conn, err := b.conns.Conn(profileID)
 	if err != nil {
-		return ldapx.RootDSE{}, ldapx.Result{}, err
+		return RootDSEResult{}, err
 	}
-	return ldapx.ReadRootDSE(b.context(), conn)
+	dse, result, err := ldapx.ReadRootDSE(b.context(), conn)
+	return RootDSEResult{RootDSE: dse, Result: result}, err
 }
 
 // ValidateFilter reports whether a filter parses. It never contacts a server
@@ -142,12 +144,13 @@ func (b *Bridge) ListChildren(profileID, dn string, page ldapx.PageRequest) (lda
 }
 
 // ReadEntry reads one entry, optionally with its operational attributes.
-func (b *Bridge) ReadEntry(profileID, dn string, opts ldapx.ReadOptions) (ldapx.Entry, ldapx.Result, error) {
+func (b *Bridge) ReadEntry(profileID, dn string, opts ldapx.ReadOptions) (EntryResult, error) {
 	conn, err := b.conns.Conn(profileID)
 	if err != nil {
-		return ldapx.Entry{}, ldapx.Result{}, err
+		return EntryResult{}, err
 	}
-	return ldapx.ReadEntry(b.context(), conn, dn, opts)
+	entry, result, err := ldapx.ReadEntry(b.context(), conn, dn, opts)
+	return EntryResult{Entry: entry, Result: result}, err
 }
 
 // announce turns each degradation into a capability:unavailable event. A
@@ -181,12 +184,12 @@ func (b *Bridge) MoveProfile(id, folderID string) error {
 }
 
 // RefreshEntry reloads an entry.
-func (b *Bridge) RefreshEntry(profileID, dn string, opts ldapx.ReadOptions) (ldapx.Entry, ldapx.Result, error) {
+func (b *Bridge) RefreshEntry(profileID, dn string, opts ldapx.ReadOptions) (EntryResult, error) {
 	return b.ReadEntry(profileID, dn, opts)
 }
 
 // GoToDN fetches an entry directly.
-func (b *Bridge) GoToDN(profileID, dn string) (ldapx.Entry, ldapx.Result, error) {
+func (b *Bridge) GoToDN(profileID, dn string) (EntryResult, error) {
 	return b.ReadEntry(profileID, dn, ldapx.ReadOptions{})
 }
 

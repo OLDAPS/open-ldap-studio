@@ -40,10 +40,14 @@ go.work.sum
 # .vscode/
 # Vitest coverage output
 frontend/coverage/
+frontend/playwright-report/
+frontend/test-results/
 
 # Downloaded by wails during an NSIS build
 build/windows/installer/tmp/
 
-# Python bytecode (the spec-kit scripts are run, not shipped)
+# Python virtual environments, test caches and bytecode
+.venv/
+.pytest_cache/
 __pycache__/
 *.pyc

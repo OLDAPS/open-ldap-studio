@@ -3,8 +3,9 @@
 ## Prerequisites
 
 To build and run this project, you will need:
-- Go 1.27 or later (the pinned Go 1.27.2 toolchain is selected automatically)
+- Go 1.27 or later (the pinned Go 1.27.3 toolchain is selected automatically)
 - Node.js 22 or later
+- Python 3.10 or later for browser tests
 - Wails CLI v2.15.0 (`go install github.com/wailsapp/wails/v2/cmd/wails@v2.15.0`)
 
 ### Platform-specific requirements
@@ -32,6 +33,36 @@ make build
 ```bash
 make test
 ```
+
+The live E2E suite requires Linux, the native Wails dependencies, Docker with
+Compose 2.24.4+, and the Go version in `go.mod`. It runs the actual Go backend
+against a disposable copy of `server/docker-compose.yml`. Install Python's
+pytest, Playwright and Chromium once, from the repository root:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python3 -m pip install -r frontend/requirements-e2e.txt
+cd frontend
+npm ci
+python3 -m playwright install chromium
+```
+
+Keep the virtual environment active when running either E2E command from `frontend/`:
+
+- `npm run test:e2e` opens a visible Chrome window and runs one scenario at a
+  time with slower actions so you can follow the application navigation.
+- `npm run test:e2e:headless` runs the same scenarios without a visible window
+  and runs the critical user journeys. CI also runs the separate Wails IPC
+  integration suite, selectable with `npm run test:ipc:headless`.
+
+Without a desktop display, use `xvfb-run -a npm run test:e2e:headless`. The
+runner creates and removes the LDAP containers and volumes automatically.
+Existing synthetic UI checks can be run separately with `npm run test:browser`
+or `npm run test:browser:headless`.
+
+See [Live E2E tests](docs/browser-testing.md) for prerequisites, coverage,
+isolation and reports.
 
 ## Desktop development
 

@@ -88,11 +88,11 @@ func Search(ctx context.Context, c *Conn, req SearchRequest) (Page, []Degradatio
 	}
 
 	attributes := req.Attributes
-	if req.IncludeOperational {
-		attributes = append(append([]string{}, attributes...), "+")
-	}
 	if len(attributes) == 0 {
 		attributes = []string{"*"}
+	}
+	if req.IncludeOperational {
+		attributes = append(append([]string{}, attributes...), "+")
 	}
 
 	var requestControls []ldap.Control
