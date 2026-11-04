@@ -324,9 +324,9 @@ func EntryVersion(entry ldapx.Entry) string {
 
 	digest := sha256.New()
 	writeLength := func(n int) {
-		var encoded [8]byte
-		binary.BigEndian.PutUint64(encoded[:], uint64(n))
-		_, _ = digest.Write(encoded[:])
+		var encoded [binary.MaxVarintLen64]byte
+		used := binary.PutVarint(encoded[:], int64(n))
+		_, _ = digest.Write(encoded[:used])
 	}
 	writeBytes := func(value []byte) {
 		writeLength(len(value))

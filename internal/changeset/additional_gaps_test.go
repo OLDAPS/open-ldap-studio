@@ -39,7 +39,7 @@ func TestUnchangedUUIDCannotHideChangedValues(t *testing.T) {
 
 func TestEntryDigestFramesValuesAndCounts(t *testing.T) {
 	one := ldapx.Entry{DN: "cn=a", Attributes: []ldapx.Attribute{{
-		Type: "mail", Values: [][]byte{[]byte{'a', 1, 'b'}},
+		Type: "mail", Values: [][]byte{{'a', 1, 'b'}},
 	}}}
 	two := ldapx.Entry{DN: "cn=a", Attributes: []ldapx.Attribute{{
 		Type: "mail", Values: [][]byte{[]byte("a"), []byte("b")},
