@@ -1,6 +1,7 @@
 package ldapx
 
 import (
+	"context"
 	"errors"
 	"fmt"
 )
@@ -146,7 +147,7 @@ func LocalValidationError(op, detail string) *Error {
 
 // Cancelled reports user cancellation, which is not an error state.
 func Cancelled(op string) *Error {
-	return &Error{Category: CategoryCancelled, Op: op, Detail: "cancelled"}
+	return &Error{Category: CategoryCancelled, Op: op, Detail: "cancelled", Err: context.Canceled}
 }
 
 // CategoryOf returns the category of err, or "" if it is not an *Error.

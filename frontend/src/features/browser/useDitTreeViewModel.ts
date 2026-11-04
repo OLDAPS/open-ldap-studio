@@ -17,7 +17,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { rdnOf } from './dn';
-import { bridge, isEmbedded } from '@/bridge/client';
+import { useApplicationClient } from '@/app/ApplicationClientProvider';
 import type { Children, Entry, Profile } from '@/bridge/types';
 
 export interface TreeRow {
@@ -41,6 +41,7 @@ export interface MoreRow {
   serverLimit: number;
   truncated: boolean;
   loading: boolean;
+  restartRequired: boolean;
 }
 
 export type Row = ({ kind: 'node' } & TreeRow) | MoreRow;
@@ -49,11 +50,13 @@ export type Row = ({ kind: 'node' } & TreeRow) | MoreRow;
 interface Branch {
   children: { dn: string; hasChildren: Children }[];
   cookie?: string;
+  sessionId?: string;
   loaded: number;
   serverLimit: number;
   truncated: boolean;
   loading: boolean;
   error?: string;
+  restartRequired?: boolean;
 }
 
 export interface DitTreeViewModel {
@@ -65,6 +68,7 @@ export interface DitTreeViewModel {
   toggle: (dn: string) => void;
   select: (dn: string) => void;
   fetchMore: (parentDn: string) => void;
+  restart: (parentDn: string) => void;
   refresh: () => void;
 }
 
@@ -72,6 +76,7 @@ export function useDitTreeViewModel(
   profileId: string | undefined,
   connected: boolean,
 ): DitTreeViewModel {
+  const client = useApplicationClient();
   const [roots, setRoots] = useState<string[]>([]);
   const [rootError, setRootError] = useState<string>();
   const [loadingRoots, setLoadingRoots] = useState(false);
@@ -84,32 +89,38 @@ export function useDitTreeViewModel(
   // it, switching profiles mid-fetch paints one server's tree under another
   // server's name.
   const generation = useRef(0);
+  const expandedRef = useRef(new Set<string>());
+  const requests = useRef(new Map<string, symbol>());
 
   const reset = useCallback(() => {
     generation.current += 1;
+    requests.current.clear();
+    expandedRef.current = new Set();
     setRoots([]);
     setRootError(undefined);
     setBranches({});
     setExpanded(new Set());
     setSelected(undefined);
+    setLoadingRoots(false);
   }, []);
 
   // Roots: the naming contexts the server publishes, falling back to the
   // profile's configured base DN when it publishes none.
   useEffect(() => {
     reset();
-    if (!profileId || !connected || !isEmbedded()) return;
+    const pending = requests.current;
+    if (!profileId || !connected || !client.isAvailable()) return;
 
     const mine = generation.current;
     setLoadingRoots(true);
 
     (async () => {
       try {
-        const [dse] = await bridge.rootDSE(profileId);
+        const [dse] = await client.rootDSE(profileId);
         let contexts = dse.namingContexts ?? [];
 
         if (contexts.length === 0) {
-          const profile: Profile = await bridge.getProfile(profileId);
+          const profile: Profile = await client.getProfile(profileId);
           if (profile.baseDn) contexts = [profile.baseDn];
         }
 
@@ -127,12 +138,18 @@ export function useDitTreeViewModel(
         if (generation.current === mine) setLoadingRoots(false);
       }
     })();
-  }, [profileId, connected, reset, nudge]);
+    return () => {
+      generation.current += 1;
+      pending.clear();
+    };
+  }, [client, profileId, connected, reset, nudge]);
 
   const load = useCallback(
-    async (parentDn: string, cookie?: string) => {
-      if (!profileId) return;
+    async (parentDn: string, cookie?: string, sessionId?: string) => {
+      if (!profileId || requests.current.has(parentDn)) return;
       const mine = generation.current;
+      const request = Symbol();
+      requests.current.set(parentDn, request);
 
       setBranches((current) => ({
         ...current,
@@ -143,16 +160,19 @@ export function useDitTreeViewModel(
           truncated: false,
           loading: true,
           cookie,
+          sessionId,
+          restartRequired: current[parentDn]?.restartRequired,
         },
       }));
 
       try {
-        const page = await bridge.listChildren(profileId, parentDn, {
+        const page = await client.listChildren(profileId, parentDn, {
           size: 0, // the profile's page size decides
           cookie,
+          sessionId,
           includeOperational: false,
         });
-        if (generation.current !== mine) return;
+        if (generation.current !== mine || requests.current.get(parentDn) !== request) return;
 
         setBranches((current) => {
           const existing = current[parentDn];
@@ -169,50 +189,59 @@ export function useDitTreeViewModel(
             [parentDn]: {
               children: [...base, ...added],
               cookie: page.cookie || undefined,
+              sessionId: page.sessionId,
               loaded: base.length + added.length,
               serverLimit: page.serverLimit ?? 0,
               truncated: Boolean(page.truncatedByServer),
               loading: false,
+              restartRequired: false,
             },
           };
         });
       } catch (cause) {
-        if (generation.current !== mine) return;
+        if (generation.current !== mine || requests.current.get(parentDn) !== request) return;
         setBranches((current) => ({
           ...current,
           [parentDn]: {
             children: current[parentDn]?.children ?? [],
+            cookie: current[parentDn]?.cookie,
+            sessionId: current[parentDn]?.sessionId,
             loaded: current[parentDn]?.loaded ?? 0,
             serverLimit: current[parentDn]?.serverLimit ?? 0,
-            truncated: false,
+            truncated: current[parentDn]?.truncated ?? false,
             loading: false,
             error: cause instanceof Error ? cause.message : String(cause),
+            restartRequired:
+              current[parentDn]?.restartRequired ||
+              (Boolean(cookie) && String(cause).includes('paging session changed')),
           },
         }));
+      } finally {
+        if (requests.current.get(parentDn) === request) requests.current.delete(parentDn);
       }
     },
-    [profileId],
+    [client, profileId],
   );
 
   const toggle = useCallback(
     (dn: string) => {
-      setExpanded((current) => {
-        const next = new Set(current);
-        if (next.has(dn)) {
-          next.delete(dn);
-          // Collapsing drops what was fetched: reopening asks the server
-          // again rather than showing a snapshot of an hour ago.
-          setBranches((all) => {
-            const rest = { ...all };
-            delete rest[dn];
-            return rest;
-          });
-        } else {
-          next.add(dn);
-          void load(dn);
-        }
-        return next;
-      });
+      const next = new Set(expandedRef.current);
+      if (next.has(dn)) {
+        next.delete(dn);
+        requests.current.delete(dn);
+        // Collapsing drops what was fetched: reopening asks the server
+        // again rather than showing a snapshot of an hour ago.
+        setBranches((all) => {
+          const rest = { ...all };
+          delete rest[dn];
+          return rest;
+        });
+      } else {
+        next.add(dn);
+        void load(dn);
+      }
+      expandedRef.current = next;
+      setExpanded(next);
     },
     [load],
   );
@@ -220,7 +249,15 @@ export function useDitTreeViewModel(
   const fetchMore = useCallback(
     (parentDn: string) => {
       const branch = branches[parentDn];
-      if (branch?.cookie) void load(parentDn, branch.cookie);
+      if (branch?.cookie && !branch.loading && !branch.restartRequired)
+        void load(parentDn, branch.cookie, branch.sessionId);
+    },
+    [branches, load],
+  );
+
+  const restart = useCallback(
+    (parentDn: string) => {
+      if (branches[parentDn]?.restartRequired && !branches[parentDn]?.loading) void load(parentDn);
     },
     [branches, load],
   );
@@ -228,6 +265,20 @@ export function useDitTreeViewModel(
   const refresh = useCallback(() => {
     setNudge((n) => n + 1);
   }, []);
+
+  useEffect(() => {
+    if (!profileId || !connected) return;
+    let pending: ReturnType<typeof setTimeout> | undefined;
+    const off = client.subscribe('entry:changed', (changed) => {
+      if (changed.profileId !== profileId) return;
+      if (pending) clearTimeout(pending);
+      pending = setTimeout(refresh, 50);
+    });
+    return () => {
+      off();
+      if (pending) clearTimeout(pending);
+    };
+  }, [client, profileId, connected, refresh]);
 
   // Flatten depth-first into what the virtualiser renders.
   //
@@ -256,7 +307,7 @@ export function useDitTreeViewModel(
       walk(child.dn, depth + 1, child.hasChildren);
     }
 
-    if (branch.cookie || branch.truncated) {
+    if (branch.cookie || branch.truncated || branch.restartRequired) {
       rows.push({
         kind: 'more',
         parentDn: dn,
@@ -265,6 +316,7 @@ export function useDitTreeViewModel(
         serverLimit: branch.serverLimit,
         truncated: branch.truncated,
         loading: branch.loading,
+        restartRequired: Boolean(branch.restartRequired),
       });
     }
   };
@@ -280,6 +332,7 @@ export function useDitTreeViewModel(
     toggle,
     select: setSelected,
     fetchMore,
+    restart,
     refresh,
   };
 }

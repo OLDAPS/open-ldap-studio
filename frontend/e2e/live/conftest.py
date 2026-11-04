@@ -1,6 +1,7 @@
 """Fresh native Wails process per test; one real LDAP fixture per test run."""
 
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from contextlib import ExitStack
 import json
 from pathlib import Path
 from uuid import uuid4
@@ -9,6 +10,7 @@ import pytest
 from playwright.sync_api import Page
 
 from .app import LiveApp
+from .proxy import LDAPProxy
 from .runtime import BASE_DN, LDAPService, NativeApp
 
 
@@ -17,6 +19,16 @@ def ldap_service(live_environment: dict) -> LDAPService:
     service = LDAPService(live_environment["project"])
     service.ports = live_environment["ports"]
     return service
+
+
+@pytest.fixture
+def ldap_proxy(ldap_service: LDAPService) -> Generator[Callable[..., LDAPProxy], None, None]:
+    with ExitStack() as stack:
+        def create(encryption: str = "none") -> LDAPProxy:
+            port = ldap_service.ports["ldaps" if encryption == "ldaps" else "ldap"]
+            return stack.enter_context(LDAPProxy(port))
+
+        yield create
 
 
 @pytest.fixture

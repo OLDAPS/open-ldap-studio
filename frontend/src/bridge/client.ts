@@ -11,6 +11,8 @@
  * on the Go side either (bridge-api.md Rule 1).
  */
 import * as generated from '../../wailsjs/go/bridge/Bridge';
+import { on } from './events';
+import type { ApplicationClient } from '@/application/client';
 import type { bridge as responses } from '../../wailsjs/go/models';
 import type {
   AppInfo,
@@ -186,6 +188,12 @@ export const bridge = {
     reason: string,
   ) => call<void>('DecideTrust', host, port, fingerprint, scope, reason),
   revokeTrustDecision: (fingerprint: string) => call<void>('RevokeTrustDecision', fingerprint),
+};
+
+export const applicationClient: ApplicationClient = {
+  ...bridge,
+  isAvailable: isEmbedded,
+  subscribe: on,
 };
 
 /** Window controls, for the frameless title bar the wireframe draws. */

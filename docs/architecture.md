@@ -58,7 +58,10 @@ databases, or deployment units.
 The project already has several important architectural foundations:
 
 - `frontend/src/bridge/client.ts` is the only frontend wrapper around Wails.
-- `internal/bridge` exposes the desktop API and performs composition.
+- `internal/bridge` exposes the desktop API; `internal/bootstrap` constructs
+  stores, adapters, lifecycle management, application services, and the bridge.
+- `internal/application/connections` owns implemented profile, connection,
+  credential, trust, and directory-query workflows through consumer-owned ports.
 - `internal/ldapx` owns LDAP transport, bind, search, controls, and result data.
 - `internal/changeset` owns preview tokens and is the only permitted caller of
   LDAP mutation functions.
@@ -71,12 +74,15 @@ The project already has several important architectural foundations:
   result boundaries.
 - `frontend/src/app/session.ts` intentionally holds shell/session state rather
   than caching directory entries.
-- `useEntryViewModel` and `useDitTreeViewModel` are the first feature ViewModels.
+- Connection, wizard, tree, and entry ViewModels consume the injectable
+  `ApplicationClient` contract. Shell subscriptions and job actions live in
+  application hooks; directory entries remain feature-local.
 
-The principal structural issue is that `internal/bridge` currently acts as the
-transport adapter, composition root, application layer, and coordinator for
-many operations. This makes Wails methods the easiest place to add behavior and
-will cause business workflows to accumulate at the desktop boundary.
+Connection and directory bridge methods now perform transport mapping only.
+The migration remains incremental: mutation/audit orchestration and legacy
+command, schema, and transfer features still follow their existing paths until
+their corresponding phases below. Do not treat this connection migration as
+completion of the entire application architecture.
 
 ## 4. Target responsibilities
 

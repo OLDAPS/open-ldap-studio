@@ -74,6 +74,11 @@ type Limits struct {
 // pointing at a credentials.Credential, which itself holds only a reference
 // into the platform store (FR-003, SC-008, research R10).
 type Profile struct {
+	// JSON presence flags keep omitted verification settings distinct from an
+	// explicit opt-out. They are restored for profiles loaded from disk.
+	tlsCertificateProvided bool
+	tlsHostnameProvided    bool
+
 	ID       string `json:"id"`
 	Name     string `json:"name"`
 	FolderID string `json:"folderId,omitempty"`
@@ -103,6 +108,14 @@ type Profile struct {
 	Referrals ReferralPolicy `json:"referrals"`
 
 	SchemaVersion int `json:"schemaVersion"`
+}
+
+// WithTLS records a Go caller's explicit verification choice, including false.
+func (p Profile) WithTLS(policy TLSPolicy) Profile {
+	p.TLS = policy
+	p.tlsCertificateProvided = true
+	p.tlsHostnameProvided = true
+	return p
 }
 
 // Summary is the list projection the connections view renders.
@@ -138,7 +151,7 @@ func (p Profile) IsProduction() bool {
 func (p Profile) Summarise() Summary {
 	return Summary{
 		ID: p.ID, Name: p.Name, FolderID: p.FolderID, Host: p.Host,
-		Port: p.Port, Encryption: p.Encryption, ReadOnly: p.ReadOnly, Tags: p.Tags,
+		Port: p.Port, Encryption: p.Encryption, ReadOnly: p.ReadOnly, Tags: append([]string(nil), p.Tags...),
 	}
 }
 

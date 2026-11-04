@@ -82,11 +82,6 @@ func derefAliases(p profiles.AliasPolicy) int {
 // labelled as such. Swallowing sizeLimitExceeded as an empty result set is one
 // of the prohibited transformations (FR-037, error-model.md).
 func Search(ctx context.Context, c *Conn, req SearchRequest) (Page, []Degradation, error) {
-	client := c.client()
-	if client == nil {
-		return Page{}, nil, TransportError("search", errors.New("the connection is not open"))
-	}
-
 	attributes := req.Attributes
 	if len(attributes) == 0 {
 		attributes = []string{"*"}
@@ -122,28 +117,9 @@ func Search(ctx context.Context, c *Conn, req SearchRequest) (Page, []Degradatio
 		requestControls,
 	)
 
-	type outcome struct {
-		res *ldap.SearchResult
-		err error
-	}
-	done := make(chan outcome, 1)
-	go func() {
-		res, err := client.Search(search)
-		done <- outcome{res, err}
-	}()
+	result, sessionID, err := c.search(ctx, search, len(req.Page.Cookie) == 0, req.Page.SessionID)
 
-	var result *ldap.SearchResult
-	var err error
-	select {
-	case <-ctx.Done():
-		// Abandoning is the server's business; closing the connection is ours.
-		// Either way the caller is not left waiting past its cancellation.
-		return Page{}, nil, Cancelled("search")
-	case o := <-done:
-		result, err = o.res, o.err
-	}
-
-	page := Page{Result: resultFrom(err)}
+	page := Page{Result: resultFrom(err), SessionID: sessionID}
 	var degradations []Degradation
 
 	if err != nil {
@@ -323,7 +299,7 @@ func ListChildren(ctx context.Context, c *Conn, dn string, page PageRequest) (Pa
 		Aliases:            c.Profile().Aliases,
 		SizeLimit:          c.Profile().Limits.SizeLimit,
 		TimeLimit:          c.Profile().Limits.TimeLimit,
-		Page:               PageRequest{Size: size, Cookie: page.Cookie},
+		Page:               PageRequest{Size: size, Cookie: page.Cookie, SessionID: page.SessionID},
 	})
 }
 

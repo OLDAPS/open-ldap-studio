@@ -31,13 +31,23 @@ func OpenStore(path string) (*Store, error) {
 	s := &Store{path: path}
 
 	var loaded struct {
-		Profiles []Profile `json:"profiles"`
-		Folders  []Folder  `json:"folders"`
+		Profiles []json.RawMessage `json:"profiles"`
+		Folders  []Folder          `json:"folders"`
 	}
 	_, err := prefs.Read(path, SchemaVersion, &loaded)
 	switch {
 	case err == nil:
-		s.profiles, s.folders = loaded.Profiles, loaded.Folders
+		s.folders = loaded.Folders
+		for _, raw := range loaded.Profiles {
+			var profile Profile
+			if err := json.Unmarshal(raw, &profile); err != nil {
+				return nil, fmt.Errorf("profiles: cannot read stored profile: %w", err)
+			}
+			if err := markTLSFieldPresence(raw, &profile); err != nil {
+				return nil, err
+			}
+			s.profiles = append(s.profiles, applyTLSDefaults(profile))
+		}
 	case os.IsNotExist(err):
 		// An empty store is where every install starts.
 	default:
@@ -50,11 +60,11 @@ func OpenStore(path string) (*Store, error) {
 // Path is the file backing the store.
 func (s *Store) Path() string { return s.path }
 
-func (s *Store) persist() error {
+func (s *Store) persist(profiles []Profile, folders []Folder) error {
 	return prefs.Write(s.path, SchemaVersion, "profiles", struct {
 		Profiles []Profile `json:"profiles"`
 		Folders  []Folder  `json:"folders"`
-	}{Profiles: s.profiles, Folders: s.folders})
+	}{Profiles: profiles, Folders: folders})
 }
 
 // List returns the summaries the connections view renders.
@@ -77,7 +87,7 @@ func (s *Store) Get(id string) (Profile, error) {
 	defer s.mu.RUnlock()
 	for _, p := range s.profiles {
 		if p.ID == id {
-			return p, nil
+			return cloneProfile(p), nil
 		}
 	}
 	return Profile{}, fmt.Errorf("%w: %s", ErrNotFound, id)
@@ -99,15 +109,22 @@ func (s *Store) Save(p Profile) (Profile, error) {
 	if p.ID == "" {
 		p.ID = uuid.NewString()
 	}
-	if index := slices.IndexFunc(s.profiles, func(existing Profile) bool { return existing.ID == p.ID }); index >= 0 {
-		s.profiles[index] = p
+	candidate := append([]Profile(nil), s.profiles...)
+	if index := slices.IndexFunc(candidate, func(existing Profile) bool { return existing.ID == p.ID }); index >= 0 {
+		candidate[index] = cloneProfile(p)
 	} else {
-		s.profiles = append(s.profiles, p)
+		candidate = append(candidate, cloneProfile(p))
 	}
-	if err := s.persist(); err != nil {
+	if err := s.persist(candidate, s.folders); err != nil {
 		return Profile{}, err
 	}
-	return p, nil
+	s.profiles = candidate
+	return cloneProfile(p), nil
+}
+
+func cloneProfile(p Profile) Profile {
+	p.Tags = append([]string(nil), p.Tags...)
+	return p
 }
 
 // Delete removes a profile.
@@ -119,8 +136,12 @@ func (s *Store) Delete(id string) error {
 	if index < 0 {
 		return fmt.Errorf("%w: %s", ErrNotFound, id)
 	}
-	s.profiles = slices.Delete(s.profiles, index, index+1)
-	return s.persist()
+	candidate := slices.Delete(append([]Profile(nil), s.profiles...), index, index+1)
+	if err := s.persist(candidate, s.folders); err != nil {
+		return err
+	}
+	s.profiles = candidate
+	return nil
 }
 
 // Duplicate copies a profile under a new id and name.
@@ -167,10 +188,10 @@ func (s *Store) SaveFolder(f Folder) (Folder, error) {
 		return Folder{}, err
 	}
 
-	s.folders = candidate
-	if err := s.persist(); err != nil {
+	if err := s.persist(s.profiles, candidate); err != nil {
 		return Folder{}, err
 	}
+	s.folders = candidate
 	return f, nil
 }
 
@@ -240,14 +261,24 @@ func applyDefaults(p Profile) Profile {
 	if p.Limits.PageSize == 0 {
 		p.Limits.PageSize = 100
 	}
-	// TLS verification is on unless the user explicitly turned it off, and a
-	// profile that has never been saved has not turned it off.
-	if p.Encryption != EncryptionNone && !p.TLS.VerifyCertificate && !p.TLS.VerifyHostname {
-		p.TLS.VerifyCertificate = true
-		p.TLS.VerifyHostname = true
-	}
+	p = applyTLSDefaults(p)
 	if p.SchemaVersion == 0 {
 		p.SchemaVersion = SchemaVersion
+	}
+	return p
+}
+
+func applyTLSDefaults(p Profile) Profile {
+	// Missing JSON fields use safe defaults; explicit false values survive.
+	if p.Encryption != EncryptionNone && !p.tlsCertificateProvided {
+		p.TLS.VerifyCertificate = true
+	}
+	if p.Encryption != EncryptionNone && !p.tlsHostnameProvided {
+		p.TLS.VerifyHostname = true
+	}
+	if p.Encryption != EncryptionNone {
+		p.tlsCertificateProvided = true
+		p.tlsHostnameProvided = true
 	}
 	return p
 }
@@ -269,5 +300,29 @@ func DecodeStrict(payload []byte) (Profile, error) {
 			"profiles: this payload cannot be stored as a connection profile (%w). "+
 				"Secrets in particular belong in the platform credential store, never in a profile", err)
 	}
-	return p, nil
+	if err := markTLSFieldPresence(payload, &p); err != nil {
+		return Profile{}, err
+	}
+	return applyTLSDefaults(p), nil
+}
+
+func markTLSFieldPresence(payload []byte, p *Profile) error {
+	var supplied struct {
+		TLS map[string]json.RawMessage `json:"tls"`
+	}
+	if err := json.Unmarshal(payload, &supplied); err != nil {
+		return err
+	}
+	for key, value := range supplied.TLS {
+		if bytes.Equal(bytes.TrimSpace(value), []byte("null")) {
+			continue
+		}
+		switch {
+		case strings.EqualFold(key, "verifyCertificate"):
+			p.tlsCertificateProvided = true
+		case strings.EqualFold(key, "verifyHostname"):
+			p.tlsHostnameProvided = true
+		}
+	}
+	return nil
 }

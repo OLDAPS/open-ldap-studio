@@ -163,11 +163,20 @@ func (c *Manager) CloseAll() {
 // cancellable and nothing here blocks the UI.
 func (c *Manager) Dial(ctx context.Context, p profiles.Profile, cred *credentials.Credential) (*ldapx.Conn, error) {
 	c.setState(ConnState{ProfileID: p.ID, State: StateConnecting, ReadOnly: p.ReadOnly, Production: p.IsProduction()})
+	if cred != nil {
+		// Retain only immutable credential metadata, never bind material.
+		copyOfCredential := *cred
+		cred = &copyOfCredential
+	}
 
-	conn, err := ldapx.Dial(ctx, ldapx.DialConfig{
+	conn, _, err := ldapx.Dial(ctx, ldapx.DialConfig{
 		Profile:   p,
 		Trust:     c.trustPolicy(p),
 		KeepAlive: 30 * time.Second,
+		Rebind: func(ctx context.Context, conn *ldapx.Conn) (ldapx.Result, error) {
+			return c.bind(ctx, conn, p, cred)
+		},
+		OnReconnect: c.reconnectOutcome,
 	})
 	if err != nil {
 		c.setState(ConnState{
@@ -187,36 +196,44 @@ func (c *Manager) Dial(ctx context.Context, p profiles.Profile, cred *credential
 		})
 	}
 
-	secret, err := c.secretFor(p, cred)
-	if err != nil {
-		_ = conn.Close()
-		c.setState(ConnState{ProfileID: p.ID, State: StateDisconnected, Message: err.Error()})
-		return nil, err
-	}
-	defer secret.Zero()
-
-	bindReq := ldapx.BindRequest{Method: p.BindMethod, DN: p.BindDN, Secret: secret}
-	if cred != nil {
-		bindReq.DN = cred.BindDN
-		bindReq.Realm = cred.Realm
-	}
-
-	result, err := ldapx.Bind(ctx, conn, bindReq)
+	result, err := c.bind(ctx, conn, p, cred)
 	if err != nil {
 		_ = conn.Close()
 		// A rejected bind is reported with the server's own words. It is not
 		// retried, and it never falls back to anonymous (deviation D7).
-		c.setState(ConnState{ProfileID: p.ID, State: StateDisconnected, Message: result.String()})
+		message := err.Error()
+		if ldapx.ResultOf(err) != nil {
+			message = result.String()
+		}
+		c.setState(ConnState{ProfileID: p.ID, State: StateDisconnected, Message: message})
 		return nil, err
 	}
 
 	c.mu.Lock()
+	previous := c.open[p.ID]
 	c.open[p.ID] = conn
 	c.mu.Unlock()
+	if previous != nil {
+		_ = previous.Close()
+	}
 
-	conn.StartKeepAlive(30*time.Second, func(lostErr error) {
+	// The connect job ends after binding. The probe loop instead belongs to
+	// the socket's lifetime, and Close cancels both probes and recovery.
+	conn.StartKeepAlive(context.Background(), 30*time.Second, func(_ ldapx.Result, lostErr error) {
+		c.mu.RLock()
+		current := c.open[p.ID] == conn
+		alreadyReported := c.state[p.ID].State == StateLost && c.state[p.ID].Message == lostErr.Error()
+		c.mu.RUnlock()
+		if !current || alreadyReported {
+			return
+		}
+		state := StateLost
+		if !errors.Is(lostErr, ldapx.ErrTransport) {
+			state = StateDisconnected
+			_ = conn.Close()
+		}
 		c.setState(ConnState{
-			ProfileID: p.ID, State: StateLost, Message: lostErr.Error(),
+			ProfileID: p.ID, State: state, Message: lostErr.Error(),
 			ReadOnly: p.ReadOnly, Production: p.IsProduction(),
 		})
 		c.emitter.Emit("conn:lost", map[string]any{"profileId": p.ID, "reason": lostErr.Error()})
@@ -237,12 +254,55 @@ func (c *Manager) Dial(ctx context.Context, p profiles.Profile, cred *credential
 	return conn, nil
 }
 
+func (c *Manager) bind(ctx context.Context, conn *ldapx.Conn, p profiles.Profile, cred *credentials.Credential) (ldapx.Result, error) {
+	secret, err := c.secretFor(p, cred)
+	if err != nil {
+		return ldapx.Result{}, &ldapx.Error{Category: ldapx.CategoryCredentialStore, Op: "bind", Detail: err.Error(), Err: err}
+	}
+	defer secret.Zero()
+	req := ldapx.BindRequest{Method: p.BindMethod, DN: p.BindDN, Secret: secret}
+	if cred != nil {
+		req.DN, req.Realm = cred.BindDN, cred.Realm
+	}
+	return ldapx.Bind(ctx, conn, req)
+}
+
+func (c *Manager) reconnectOutcome(conn *ldapx.Conn, _ ldapx.Result, err error) {
+	profileID := conn.Profile().ID
+	c.mu.Lock()
+	if c.open[profileID] != conn {
+		c.mu.Unlock()
+		return
+	}
+	state := c.state[profileID]
+	if err != nil {
+		state.State, state.Message = StateLost, err.Error()
+		if conn.IsClosed() && !errors.Is(err, ldapx.ErrTransport) {
+			state.State = StateDisconnected
+			delete(c.open, profileID)
+		}
+		c.state[profileID] = state
+		c.mu.Unlock()
+		c.emitter.Emit("conn:state", state)
+		c.emitter.Emit("conn:lost", map[string]any{"profileId": profileID, "reason": err.Error()})
+		return
+	}
+	state.State, state.Message = StateConnected, ""
+	state.BoundDN, state.ServerIdentity = conn.BoundDN(), conn.ServerIdentity()
+	state.TLSVerified, state.Encrypted = conn.TLSVerified(), conn.Encrypted()
+	state.WritesRequireConfirmation = true
+	c.state[profileID] = state
+	c.mu.Unlock()
+	c.emitter.Emit("conn:state", state)
+	c.emitter.Emit("conn:reconnected", map[string]any{"profileId": profileID, "writesRequireConfirmation": true})
+}
+
 // secretFor resolves the profile's credential.
 //
 // A missing or unreachable credential store is recoverable: the caller is
 // asked for a session-only secret rather than being refused (FR-005).
 func (c *Manager) secretFor(p profiles.Profile, cred *credentials.Credential) (secrets.Secret, error) {
-	if p.BindMethod == profiles.BindAnonymous || p.BindMethod == profiles.BindExternal {
+	if p.BindMethod == "" || p.BindMethod == profiles.BindAnonymous || p.BindMethod == profiles.BindExternal {
 		return secrets.Secret{}, nil
 	}
 

@@ -22,10 +22,15 @@ type Reporter interface {
 	Progress(done, total int, message string)
 }
 
+// A synchronous application call records outcomes but stops on the first
+// rejected operation. Jobs keep processing independent operations.
+type stopOnErrorReporter interface{ StopOnError() bool }
+
 const (
-	outcomeSucceeded = "succeeded"
-	outcomeFailed    = "failed"
-	outcomeSkipped   = "skipped"
+	outcomeSucceeded     = "succeeded"
+	outcomeFailed        = "failed"
+	outcomeSkipped       = "skipped"
+	outcomeIndeterminate = "indeterminate"
 )
 
 // Commit dispatches the change set the token vouches for.
@@ -40,6 +45,9 @@ func (p *Pipeline) Commit(ctx context.Context, token string, reporter Reporter) 
 		return ldapx.Result{}, err
 	}
 	cs := held.changeSet
+	if cs.Kind == KindSubtreeDelete {
+		return ldapx.Result{}, ErrSubtreePreviewUnavailable
+	}
 
 	// The guard is checked again at commit, not only at preview: a profile can
 	// be switched to read-only while a preview is on screen.
@@ -50,10 +58,19 @@ func (p *Pipeline) Commit(ctx context.Context, token string, reporter Reporter) 
 	if profile.ReadOnly {
 		return ldapx.Result{}, &ErrReadOnly{ProfileID: profile.ID, Name: profile.Name}
 	}
+	if profile.IsProduction() != held.production {
+		return ldapx.Result{}, ErrPolicyChanged
+	}
 
 	dir, err := p.conns.Directory(cs.ProfileID)
 	if err != nil {
 		return ldapx.Result{}, err
+	}
+	if held.sessionID != "" {
+		if held.sessionID != directorySession(dir) {
+			return ldapx.Result{}, ErrSessionChanged
+		}
+		ctx = ldapx.WithWriteSession(ctx, held.sessionID)
 	}
 
 	if err := p.checkVersions(ctx, dir, held.token, cs); err != nil {
@@ -78,7 +95,9 @@ func (p *Pipeline) Commit(ctx context.Context, token string, reporter Reporter) 
 
 		if reporter != nil {
 			status := outcomeSucceeded
-			if err != nil {
+			if ldapx.CategoryOf(err) == ldapx.CategoryIndeterminate {
+				status = outcomeIndeterminate
+			} else if err != nil {
 				status = outcomeFailed
 			}
 			outcome := result
@@ -90,9 +109,20 @@ func (p *Pipeline) Commit(ctx context.Context, token string, reporter Reporter) 
 			// An indeterminate write stops the run: continuing would apply
 			// later operations on top of a state nobody can describe.
 			if ldapx.CategoryOf(err) == ldapx.CategoryIndeterminate {
+				if reporter != nil {
+					for _, remaining := range cs.Ops[i+1:] {
+						reporter.Outcome(remaining.DN, outcomeSkipped, nil)
+					}
+				}
 				return result, err
 			}
-			if reporter == nil {
+			stop, _ := reporter.(stopOnErrorReporter)
+			if reporter == nil || (stop != nil && stop.StopOnError()) {
+				if reporter != nil {
+					for _, remaining := range cs.Ops[i+1:] {
+						reporter.Outcome(remaining.DN, outcomeSkipped, nil)
+					}
+				}
 				return result, err
 			}
 			// A multi-entry run continues so that every entry gets an outcome,
@@ -181,6 +211,8 @@ func (d liveDirectory) ReadEntry(ctx context.Context, dn string) (ldapx.Entry, e
 }
 
 func (d liveDirectory) Identity() string { return d.conn.ServerIdentity() }
+
+func (d liveDirectory) SessionID() string { return d.conn.SessionID() }
 
 func (d liveDirectory) add(ctx context.Context, dn string, attributes []ldapx.Attribute) (ldapx.Result, error) {
 	return ldapx.AddEntry(ctx, d.conn, dn, attributes)

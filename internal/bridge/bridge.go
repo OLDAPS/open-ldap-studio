@@ -2,19 +2,12 @@ package bridge
 
 import (
 	"context"
-	"path/filepath"
 	"sync"
 
 	wailsruntime "github.com/wailsapp/wails/v2/pkg/runtime"
 
-	"github.com/open-ldap-studio/open-ldap-studio/internal/changeset"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/commands"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/connections"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/jobs"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/logging"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/profiles"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/secrets"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/trust"
 )
 
 // Version of the application, stamped at build time.
@@ -28,64 +21,23 @@ var Version = "0.1.0-dev"
 //   - No method returns secret material, and none of the vault methods the
 //     wireframe implied exists (contracts C9, C11, deviation D2).
 type Bridge struct {
-	ctx  context.Context
-	logs *logging.Logs
+	ctx context.Context
 
 	jobs     *jobs.Registry
 	commands *commands.Registry
-	profiles *profiles.Store
-	pipeline *changeset.Pipeline
-
-	secrets       secrets.Provider
-	secretsReason string
-	trust         *trust.Store
-
-	conns *connections.Manager
+	changes  ChangeApplication
+	app      ConnectionApplication
 
 	mu    sync.RWMutex
 	ready bool
 }
 
-// New builds the bridge. It does no I/O beyond opening the profile store, so a
-// failure here cannot stop the window from appearing — the application must
-// reach a usable window in under three seconds with no prompt (SC-009).
-func New(logs *logging.Logs) *Bridge {
-	paths, err := logging.DefaultPaths()
-	if err != nil {
-		paths = logging.Paths{Data: "."}
+// New injects composed services without opening stores or constructing adapters.
+func New(deps Dependencies) *Bridge {
+	return &Bridge{
+		jobs: deps.Jobs, commands: deps.Commands,
+		changes: deps.Changes, app: deps.Application,
 	}
-
-	provider, reason := secrets.Open()
-
-	b := &Bridge{
-		logs:          logs,
-		commands:      commands.Default(),
-		secrets:       provider,
-		secretsReason: reason,
-	}
-	b.jobs = jobs.NewRegistry(b)
-
-	store, err := profiles.OpenStore(filepath.Join(paths.Data, "connections.json"))
-	if err != nil {
-		// A store from a newer version, or an unreadable one, is reported
-		// rather than replaced. The application still starts; the connections
-		// list explains itself.
-		_ = logs.Sink(logging.Errors).Record("profile store: %v", err)
-		store, _ = profiles.OpenStore(filepath.Join(paths.Data, "connections.json.unreadable"))
-	}
-	b.profiles = store
-
-	trustStore, err := trust.OpenStore(filepath.Join(paths.Data, "trust.json"))
-	if err != nil {
-		_ = logs.Sink(logging.Errors).Record("trust store: %v", err)
-		trustStore, _ = trust.OpenStore(filepath.Join(paths.Data, "trust.json.unreadable"))
-	}
-	b.trust = trustStore
-
-	b.conns = connections.New(b, provider, b.trustPolicy, logs)
-	b.pipeline = changeset.NewPipeline(b.conns, store, changeset.Guard{RequireProductionConfirmation: true})
-
-	return b
 }
 
 // Startup receives the Wails context. Events cannot be emitted before it
@@ -96,24 +48,19 @@ func (b *Bridge) Startup(ctx context.Context) {
 	b.ready = true
 	b.mu.Unlock()
 
-	_ = b.logs.Sink(logging.Application).Record("started, version %s, credential store %q",
-		Version, b.secrets.Name())
-
-	if b.secretsReason != "" {
-		// An unavailable credential store is recoverable and explained, never
-		// silent (Constitution II, FR-005).
-		b.Emit("credential:storeUnavailable", map[string]any{"reason": b.secretsReason})
-	}
+	b.app.Startup()
 }
 
-// Shutdown cancels every running job and closes every connection.
-func (b *Bridge) Shutdown() {
-	b.jobs.CancelAll()
-	b.conns.CloseAll()
-	if session, ok := b.secrets.(*secrets.Session); ok {
-		session.Zero()
+// Shutdown delegates application lifecycle cleanup.
+func (b *Bridge) Shutdown() { b.app.Shutdown() }
+
+func (b *Bridge) context() context.Context {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+	if b.ctx == nil {
+		return context.Background()
 	}
-	_ = b.logs.Sink(logging.Application).Record("shutdown")
+	return b.ctx
 }
 
 // Emit sends a runtime event to the frontend. It is the jobs.Emitter the
@@ -144,13 +91,7 @@ type AppInfo struct {
 
 // GetAppInfo returns the application's own state.
 func (b *Bridge) GetAppInfo() AppInfo {
-	return AppInfo{
-		Version:               Version,
-		CredentialStore:       b.secrets.Name(),
-		CredentialStoreReason: b.secretsReason,
-		UpdateChecksEnabled:   false,
-		Platform:              string(currentPlatform()),
-	}
+	return AppInfo(b.app.Info())
 }
 
 type CredentialStatus struct {
@@ -161,9 +102,6 @@ type CredentialStatus struct {
 // CredentialStoreStatus reports whether the platform agent is reachable, and
 // why not when it is not. It never returns a secret.
 func (b *Bridge) CredentialStoreStatus() CredentialStatus {
-	available, reason := b.secrets.Available()
-	if reason == "" {
-		reason = b.secretsReason
-	}
+	available, reason := b.app.CredentialStoreStatus()
 	return CredentialStatus{Available: available, Reason: reason}
 }

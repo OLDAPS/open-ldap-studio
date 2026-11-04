@@ -9,7 +9,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
 
-import { bridge, isEmbedded } from '@/bridge/client';
+import { useApplicationClient } from './ApplicationClientProvider';
 import type { Command, CommandSet, MenuName, Platform } from '@/bridge/types';
 
 /** The context a command's enablement predicate is evaluated against. */
@@ -117,17 +117,27 @@ export function chordFromEvent(event: KeyboardEvent, platform: Platform): string
 }
 
 export function CommandProvider({ children }: { children: ReactNode }) {
+  const client = useApplicationClient();
   const [commandSet, setCommandSet] = useState<CommandSet>();
   const [enablement, setEnablementState] = useState<EnablementContext>(emptyEnablement);
   const handlers = useMemo(() => new Map<string, Handler>(), []);
 
   useEffect(() => {
-    if (!isEmbedded()) return;
-    bridge
+    let active = true;
+    setCommandSet(undefined);
+    if (!client.isAvailable()) return;
+    client
       .getCommands()
-      .then(setCommandSet)
-      .catch(() => setCommandSet(undefined));
-  }, []);
+      .then((commands) => {
+        if (active) setCommandSet(commands);
+      })
+      .catch(() => {
+        if (active) setCommandSet(undefined);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client]);
 
   const register = useCallback(
     (commandId: string, handler: Handler) => {

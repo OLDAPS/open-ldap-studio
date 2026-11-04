@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"github.com/go-ldap/ldap/v3"
+	"github.com/google/uuid"
 
 	"github.com/open-ldap-studio/open-ldap-studio/internal/profiles"
 )
@@ -49,8 +50,14 @@ type TrustPolicy interface {
 type DialConfig struct {
 	Profile profiles.Profile
 	Trust   TrustPolicy
-	// KeepAlive of 0 disables the idle probe.
+	// KeepAlive is the TCP keep-alive interval; <= 0 disables OS probes.
+	// StartKeepAlive controls the separate LDAP idle probe.
 	KeepAlive time.Duration
+	// Rebind re-authenticates a replacement transport with fresh credentials.
+	// A nil callback disables reconnect. Credentials are never retained here.
+	Rebind func(context.Context, *Conn) (Result, error)
+	// OnReconnect reports recovery's outcome after all session locks are released.
+	OnReconnect func(*Conn, Result, error)
 }
 
 // Conn is one connection to one directory.
@@ -69,7 +76,15 @@ type Conn struct {
 	// certificate subject where TLS is in use, otherwise host:port.
 	serverIdentity string
 	closed         bool
-	stopKeepAlive  chan struct{}
+	stopKeepAlive  context.CancelFunc
+	config         DialConfig
+	lifetime       context.Context
+	cancel         context.CancelFunc
+	reconnecting   chan struct{}
+	reconnectError error
+	sessionID      string
+	reconnected    bool
+	writes         int
 	// rawConn is the socket before go-ldap takes it over. It is retained so a
 	// SASL mechanism go-ldap does not implement can run on it first.
 	rawConn net.Conn
@@ -128,60 +143,91 @@ func (c *Conn) client() *ldap.Conn {
 // Dial opens a transport to the profile's server and applies its encryption
 // policy. It does not bind — that is Bind's job, and the split exists because
 // a failed bind must not look like a failed connection.
-func Dial(ctx context.Context, cfg DialConfig) (*Conn, error) {
+func Dial(ctx context.Context, cfg DialConfig) (*Conn, Result, error) {
 	p := cfg.Profile
-	port := p.Port
-	if port == 0 {
-		port = profiles.DefaultPort(p.Encryption)
+	if p.Port == 0 {
+		p.Port = profiles.DefaultPort(p.Encryption)
 	}
-	address := net.JoinHostPort(p.Host, strconv.Itoa(port))
+	if p.Host == "" || p.Port < 1 || p.Port > 65535 {
+		return nil, Result{}, LocalValidationError("connect", "a host and a port between 1 and 65535 are required")
+	}
+	switch p.Encryption {
+	case profiles.EncryptionNone, "", profiles.EncryptionLDAPS, profiles.EncryptionStartTLS:
+	default:
+		return nil, Result{}, LocalValidationError("connect", fmt.Sprintf("unknown encryption mode %q", p.Encryption))
+	}
+	address := net.JoinHostPort(p.Host, strconv.Itoa(p.Port))
+	cfg.Profile = p
 
 	timeout := time.Duration(p.Timeouts.ConnectMS) * time.Millisecond
 	if timeout <= 0 {
 		timeout = 30 * time.Second
 	}
 
-	dialer := &net.Dialer{Timeout: timeout, KeepAlive: cfg.KeepAlive}
+	// The budget covers DNS, TCP, StartTLS and the TLS handshake together.
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+	keepAlive := cfg.KeepAlive
+	if keepAlive <= 0 {
+		keepAlive = -1
+	}
+	dialer := &net.Dialer{KeepAlive: keepAlive}
 	raw, err := dialer.DialContext(ctx, "tcp", address)
 	if err != nil {
-		return nil, TransportError("connect", err)
+		return nil, Result{}, contextError(ctx, "connect", err)
+	}
+	stop := closeOnCancel(ctx, raw)
+	defer stop()
+	deadline, _ := ctx.Deadline()
+	if err := raw.SetDeadline(deadline); err != nil {
+		_ = raw.Close()
+		return nil, Result{}, TransportError("connect", err)
 	}
 
-	conn := &Conn{profile: p, address: address, serverIdentity: address}
+	conn := &Conn{profile: p, config: cfg, address: address, serverIdentity: address, sessionID: uuid.NewString()}
+	result := NewResult(Success, "", "")
 
 	switch p.Encryption {
 	case profiles.EncryptionLDAPS:
 		tlsConn, err := conn.wrapTLS(ctx, raw, cfg)
 		if err != nil {
 			_ = raw.Close()
-			return nil, err
+			return nil, result, err
 		}
 		raw = tlsConn
 	case profiles.EncryptionStartTLS:
 		// StartTLS is negotiated here rather than through go-ldap so that the
 		// socket is still ours when a SASL mechanism go-ldap does not
 		// implement has to run over it (see cram_md5.go).
-		if err := startTLSRequest(raw, timeout); err != nil {
+		result, err = startTLSRequest(ctx, raw)
+		if err != nil {
 			_ = raw.Close()
-			return nil, err
+			return nil, result, err
 		}
 		tlsConn, err := conn.wrapTLS(ctx, raw, cfg)
 		if err != nil {
 			_ = raw.Close()
 			// The profile asked for StartTLS and did not get it. It is never
 			// silently downgraded to plaintext (FR-009).
-			return nil, err
+			return nil, result, err
 		}
 		raw = tlsConn
 	case profiles.EncryptionNone, "":
 		// Plaintext. The UI states this on every screen the connection appears.
-	default:
-		_ = raw.Close()
-		return nil, LocalValidationError("connect", fmt.Sprintf("unknown encryption mode %q", p.Encryption))
 	}
 
+	stop()
+	if err := ctx.Err(); err != nil {
+		_ = raw.Close()
+		return nil, result, contextError(ctx, "connect", err)
+	}
+	if err := raw.SetDeadline(time.Time{}); err != nil {
+		_ = raw.Close()
+		return nil, result, TransportError("connect", err)
+	}
+	conn.lifetime, conn.cancel = context.WithCancel(context.Background())
 	conn.rawConn = raw
-	return conn, nil
+	return conn, result, nil
 }
 
 // wrapTLS performs the handshake and applies the trust policy.
@@ -225,7 +271,10 @@ func (c *Conn) wrapTLS(ctx context.Context, raw net.Conn, cfg DialConfig) (net.C
 			if cfg.Trust == nil {
 				return TrustError("connect", verifyErr.Error(), verifyErr)
 			}
-			return cfg.Trust.VerifyChain(p.Host, p.Port, chain, fingerprint, verifyErr)
+			if err := cfg.Trust.VerifyChain(p.Host, p.Port, chain, fingerprint, verifyErr); err != nil {
+				return TrustError("connect", err.Error(), err)
+			}
+			return nil
 		},
 	}
 
@@ -235,7 +284,7 @@ func (c *Conn) wrapTLS(ctx context.Context, raw net.Conn, cfg DialConfig) (net.C
 		if errors.As(err, &trustErr) {
 			return nil, trustErr
 		}
-		return nil, TransportError("tls handshake", err)
+		return nil, contextError(ctx, "tls handshake", err)
 	}
 
 	state := tlsConn.ConnectionState()
@@ -276,7 +325,7 @@ func Fingerprint(cert *x509.Certificate) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// Close unbinds and closes the socket.
+// Close cancels background work and closes the socket. It is idempotent.
 func (c *Conn) Close() error {
 	c.mu.Lock()
 	if c.closed {
@@ -286,19 +335,26 @@ func (c *Conn) Close() error {
 	c.closed = true
 	client, raw, stop := c.ldap, c.rawConn, c.stopKeepAlive
 	c.stopKeepAlive = nil
+	if c.cancel != nil {
+		c.cancel()
+	}
 	c.mu.Unlock()
 
 	if stop != nil {
-		close(stop)
+		stop()
+	}
+	// Interrupt a blocked socket write before asking go-ldap's message loop to
+	// exit; that loop cannot process its quit message while Write is blocked.
+	var closeErr error
+	if raw != nil {
+		_ = raw.SetDeadline(time.Now())
+		closeErr = raw.Close()
 	}
 	if client != nil {
 		_ = client.Close()
 		return nil
 	}
-	if raw != nil {
-		return raw.Close()
-	}
-	return nil
+	return closeErr
 }
 
 // IsClosed reports whether the connection has been closed locally or by the
@@ -319,6 +375,9 @@ func (c *Conn) activate() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
+	if c.closed {
+		return TransportError("connect", net.ErrClosed)
+	}
 	if c.ldap != nil {
 		return nil
 	}
@@ -330,9 +389,10 @@ func (c *Conn) activate() error {
 	client.Start()
 
 	readTimeout := time.Duration(c.profile.Timeouts.ReadMS) * time.Millisecond
-	if readTimeout > 0 {
-		client.SetTimeout(readTimeout)
+	if readTimeout <= 0 {
+		readTimeout = 30 * time.Second
 	}
+	client.SetTimeout(readTimeout)
 	c.ldap = client
 	return nil
 }
@@ -341,33 +401,48 @@ func (c *Conn) activate() error {
 // noticed by us rather than discovered mid-write. The probe is a Root DSE read
 // of nothing: the cheapest request that proves the session is alive.
 //
-// onLost is called once, off the caller's goroutine, when a probe fails. FR-015
-// hangs off it: a reconnected session requires confirmation before the next
-// write, because the server may have forgotten the bind.
-func (c *Conn) StartKeepAlive(interval time.Duration, onLost func(error)) {
+// onLost is called once when recovery fails. Local cancellation, replacement
+// of the probe loop and Close never report a server loss.
+func (c *Conn) StartKeepAlive(ctx context.Context, interval time.Duration, onLost func(Result, error)) {
 	if interval <= 0 {
 		return
 	}
-	stop := make(chan struct{})
+	ctx, cancel := c.operationContextWithoutTimeout(ctx)
 
 	c.mu.Lock()
-	if c.stopKeepAlive != nil {
-		close(c.stopKeepAlive)
+	if c.closed {
+		c.mu.Unlock()
+		cancel()
+		return
 	}
-	c.stopKeepAlive = stop
+	if c.stopKeepAlive != nil {
+		c.stopKeepAlive()
+	}
+	c.stopKeepAlive = cancel
 	c.mu.Unlock()
 
 	go func() {
+		defer cancel()
 		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for {
 			select {
-			case <-stop:
+			case <-ctx.Done():
 				return
 			case <-ticker.C:
-				if err := c.probe(); err != nil {
+				c.mu.RLock()
+				writing := c.writes > 0
+				c.mu.RUnlock()
+				if writing {
+					continue
+				}
+				result, err := c.probe(ctx)
+				if ctx.Err() != nil {
+					return
+				}
+				if err != nil {
 					if onLost != nil {
-						onLost(err)
+						onLost(result, err)
 					}
 					return
 				}
@@ -377,17 +452,11 @@ func (c *Conn) StartKeepAlive(interval time.Duration, onLost func(error)) {
 }
 
 // probe issues a base-scoped search for no attributes against the Root DSE.
-func (c *Conn) probe() error {
-	client := c.client()
-	if client == nil || client.IsClosing() {
-		return TransportError("keep-alive", errors.New("the connection is closed"))
-	}
+func (c *Conn) probe(ctx context.Context) (Result, error) {
 	req := ldap.NewSearchRequest("", ldap.ScopeBaseObject, ldap.NeverDerefAliases,
 		1, 5, false, "(objectClass=*)", []string{"1.1"}, nil)
-	if _, err := client.Search(req); err != nil {
-		return translateError("keep-alive", err)
-	}
-	return nil
+	_, _, err := c.search(ctx, req, true, "")
+	return resultFrom(err), translateError("keep-alive", err)
 }
 
 // startTLSRequest sends the StartTLS extended operation and reads its answer
@@ -396,27 +465,339 @@ func (c *Conn) probe() error {
 // go-ldap has its own StartTLS, but using it would mean the LDAP client owns
 // the socket from that point on, and the in-house SASL mechanisms need the
 // socket for one more exchange first.
-func startTLSRequest(raw net.Conn, timeout time.Duration) error {
+func startTLSRequest(ctx context.Context, raw net.Conn) (Result, error) {
 	const startTLSOID = "1.3.6.1.4.1.1466.20037"
 
-	if timeout > 0 {
-		_ = raw.SetDeadline(time.Now().Add(timeout))
-		defer func() { _ = raw.SetDeadline(time.Time{}) }()
-	}
-
 	if err := writeExtendedRequest(raw, 1, startTLSOID, nil); err != nil {
-		return TransportError("startTLS", err)
+		return Result{}, contextError(ctx, "startTLS", err)
 	}
 	result, _, err := readExtendedResponse(raw)
 	if err != nil {
-		return TransportError("startTLS", err)
+		return Result{}, contextError(ctx, "startTLS", err)
 	}
 	if result.Code != Success {
 		// The profile asked for an encrypted transport and the server refused.
 		// Continuing in the clear is exactly the silent downgrade FR-009 bans.
-		return ServerError("startTLS", result)
+		return result, ServerError("startTLS", result)
 	}
-	return nil
+	return result, nil
+}
+
+// closeOnCancel interrupts raw exchanges without leaving a goroutine or a
+// cancellation callback able to close a successfully handed-off socket.
+func closeOnCancel(ctx context.Context, raw net.Conn) func() {
+	done := make(chan struct{})
+	stop := context.AfterFunc(ctx, func() {
+		_ = raw.SetDeadline(time.Now())
+		_ = raw.Close()
+		close(done)
+	})
+	var once sync.Once
+	return func() {
+		once.Do(func() {
+			if !stop() {
+				<-done
+			}
+		})
+	}
+}
+
+func contextError(ctx context.Context, op string, err error) error {
+	err = translateError(op, err)
+	if ResultOf(err) != nil {
+		// A response already received is authoritative even if the caller
+		// cancelled at the same time. Preserve its diagnostic and category.
+		return err
+	}
+	if ctx.Err() != nil {
+		return translateError(op, ctx.Err())
+	}
+	return err
+}
+
+func (c *Conn) operationContextWithoutTimeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(ctx)
+	stop := func() bool { return true }
+	if c.lifetime != nil {
+		stop = context.AfterFunc(c.lifetime, cancel)
+	}
+	return ctx, func() {
+		stop()
+		cancel()
+	}
+}
+
+func (c *Conn) operationContext(ctx context.Context) (context.Context, context.CancelFunc) {
+	ctx, stop := c.operationContextWithoutTimeout(ctx)
+	timeout := time.Duration(c.profile.Timeouts.ReadMS) * time.Millisecond
+	if timeout <= 0 {
+		timeout = 30 * time.Second
+	}
+	ctx, cancel := context.WithTimeout(ctx, timeout)
+	return ctx, func() {
+		cancel()
+		stop()
+	}
+}
+
+// search retries a read once, only after a lost transport, and never carries a
+// paging cookie onto a different session. Writes have no retry path.
+func (c *Conn) search(ctx context.Context, req *ldap.SearchRequest, retry bool, expectedSession string) (*ldap.SearchResult, string, error) {
+	ctx, cancel := c.operationContext(ctx)
+	defer cancel()
+	client, raw, sessionID := c.readSession()
+	if !retry && (expectedSession == "" || expectedSession != sessionID) {
+		return nil, sessionID, LocalValidationError("search", "the paging session changed; refresh the results before requesting another page")
+	}
+	result, err := searchContext(ctx, client, raw, req)
+	if err == nil || !retry || client == nil || !client.IsClosing() || !errors.Is(translateError("search", err), ErrTransport) || ctx.Err() != nil {
+		return result, sessionID, err
+	}
+	if _, err := c.reconnect(ctx, client); err != nil {
+		return nil, sessionID, err
+	}
+	client, raw, sessionID = c.readSession()
+	result, err = searchContext(ctx, client, raw, req)
+	return result, sessionID, err
+}
+
+func (c *Conn) readSession() (*ldap.Conn, net.Conn, string) {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.ldap, c.rawConn, c.sessionID
+}
+
+func searchContext(ctx context.Context, client *ldap.Conn, raw net.Conn, req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+	if client == nil || raw == nil || client.IsClosing() {
+		return nil, TransportError("search", net.ErrClosed)
+	}
+	// SearchAsync checks context while waiting for replies, but acquiring a
+	// message ID or writing a request can block its worker before that check.
+	// Closing the transport interrupts both and lets later requests terminate.
+	stop := closeOnCancel(ctx, raw)
+	defer stop()
+	type outcome struct {
+		result *ldap.SearchResult
+		err    error
+	}
+	done := make(chan outcome, 1)
+	go func() {
+		result, err := collectSearch(ctx, client, req)
+		done <- outcome{result, err}
+	}()
+	select {
+	case response := <-done:
+		return response.result, contextError(ctx, "search", response.err)
+	case <-ctx.Done():
+		// Prefer a server response already received over simultaneous cancellation.
+		select {
+		case response := <-done:
+			return response.result, contextError(ctx, "search", response.err)
+		default:
+			return nil, ctx.Err()
+		}
+	}
+}
+
+func collectSearch(ctx context.Context, client *ldap.Conn, req *ldap.SearchRequest) (*ldap.SearchResult, error) {
+	result := &ldap.SearchResult{}
+	response := client.SearchAsync(ctx, req, 0)
+	for response.Next() {
+		if entry := response.Entry(); entry != nil {
+			result.Entries = append(result.Entries, entry)
+		}
+		if referral := response.Referral(); referral != "" {
+			result.Referrals = append(result.Referrals, referral)
+		}
+		result.Controls = append(result.Controls, response.Controls()...)
+	}
+	if err := response.Err(); err != nil {
+		return result, err
+	}
+	if ctx.Err() != nil {
+		return result, ctx.Err()
+	}
+	if client.IsClosing() {
+		return result, TransportError("search", net.ErrClosed)
+	}
+	return result, nil
+}
+
+// reconnect serializes recovery so concurrent readers authenticate a single
+// replacement. Waiters and the dial/bind all observe cancellation and Close.
+func (c *Conn) reconnect(ctx context.Context, failed *ldap.Conn) (Result, error) {
+	for {
+		c.mu.Lock()
+		switch {
+		case c.closed || c.config.Rebind == nil || c.writes > 0:
+			c.mu.Unlock()
+			return Result{}, TransportError("reconnect", net.ErrClosed)
+		case c.reconnectError != nil:
+			err := c.reconnectError
+			c.mu.Unlock()
+			return resultFrom(err), err
+		case c.ldap != failed && c.ldap != nil && !c.ldap.IsClosing():
+			c.mu.Unlock()
+			return NewResult(Success, "", ""), nil
+		case c.reconnecting != nil:
+			done := c.reconnecting
+			c.mu.Unlock()
+			select {
+			case <-ctx.Done():
+				return Result{}, contextError(ctx, "reconnect", ctx.Err())
+			case <-done:
+				continue
+			}
+		}
+		c.reconnecting = make(chan struct{})
+		c.mu.Unlock()
+		result, err := c.replaceSession(ctx)
+		c.mu.Lock()
+		if err != nil && !errors.Is(err, ErrTransport) && !errors.Is(err, ErrCancelled) {
+			// Trust and authentication refusals are terminal for this session;
+			// another read must not start a credential retry loop.
+			c.reconnectError = err
+		}
+		close(c.reconnecting)
+		c.reconnecting = nil
+		c.mu.Unlock()
+		notify := ctx.Err() == nil
+		if err != nil && !errors.Is(err, ErrTransport) && !errors.Is(err, ErrCancelled) {
+			_ = c.Close()
+		}
+		if c.config.OnReconnect != nil && notify {
+			c.config.OnReconnect(c, result, err)
+		}
+		return result, err
+	}
+}
+
+func (c *Conn) replaceSession(ctx context.Context) (Result, error) {
+	replacement, result, err := Dial(ctx, c.config)
+	if err != nil {
+		return result, err
+	}
+	result, err = c.config.Rebind(ctx, replacement)
+	if err != nil {
+		_ = replacement.Close()
+		return result, err
+	}
+	if result.Code != Success {
+		_ = replacement.Close()
+		return result, ServerError("rebind", result)
+	}
+	c.mu.Lock()
+	if c.closed || ctx.Err() != nil || c.writes > 0 {
+		c.mu.Unlock()
+		_ = replacement.Close()
+		return Result{}, contextError(ctx, "reconnect", net.ErrClosed)
+	}
+	oldClient, oldRaw := c.ldap, c.rawConn
+	c.ldap, c.rawConn = replacement.ldap, replacement.rawConn
+	c.tlsState, c.serverIdentity = replacement.tlsState, replacement.serverIdentity
+	c.boundDN, c.sessionID = replacement.boundDN, replacement.sessionID
+	c.reconnected = true
+	c.mu.Unlock()
+	replacement.cancel()
+	if oldClient != nil {
+		_ = oldClient.Close()
+	} else if oldRaw != nil {
+		_ = oldRaw.Close()
+	}
+	return result, nil
+}
+
+// SessionID identifies the authenticated transport. A preview captures it so
+// reconnecting invalidates the previous confirmation even if data is unchanged.
+func (c *Conn) SessionID() string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.sessionID
+}
+
+type writeSessionKey struct{}
+
+// WithWriteSession carries the session whose preview was explicitly confirmed.
+// It is checked atomically with obtaining the client, immediately before I/O.
+func WithWriteSession(ctx context.Context, sessionID string) context.Context {
+	return context.WithValue(ctx, writeSessionKey{}, sessionID)
+}
+
+func (c *Conn) writeClient(ctx context.Context, op string) (*ldap.Conn, func(), error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return nil, nil, contextError(ctx, op, err)
+	}
+	session, _ := ctx.Value(writeSessionKey{}).(string)
+	if (c.reconnected || session != "") && session != c.sessionID {
+		return nil, nil, LocalValidationError(op, "the connection was reconnected; preview and confirm this write again")
+	}
+	if c.closed || c.ldap == nil || c.ldap.IsClosing() || c.reconnecting != nil {
+		return nil, nil, TransportError(op, net.ErrClosed)
+	}
+	c.writes++
+	return c.ldap, func() {
+		c.mu.Lock()
+		c.writes--
+		c.mu.Unlock()
+	}, nil
+}
+
+func (c *Conn) write(ctx context.Context, op string, send func(*ldap.Conn) error) (Result, error) {
+	ctx, cancel := c.operationContext(ctx)
+	defer cancel()
+	client, release, err := c.writeClient(ctx, op)
+	if err != nil {
+		return Result{}, err
+	}
+	defer release()
+	c.mu.RLock()
+	raw := c.rawConn
+	c.mu.RUnlock()
+	stop := closeOnCancel(ctx, raw)
+	defer stop()
+	err = send(client)
+	stop()
+	return finishWrite(ctx, op, err)
+}
+
+// readOperation covers the small synchronous read-only extended operations.
+// Cancelling them closes their transport; no request goroutine outlives them.
+func (c *Conn) readOperation(ctx context.Context, op string, send func(*ldap.Conn) error) error {
+	ctx, cancel := c.operationContext(ctx)
+	defer cancel()
+	for attempt := 0; ; attempt++ {
+		if err := ctx.Err(); err != nil {
+			return contextError(ctx, op, err)
+		}
+		c.mu.RLock()
+		client, raw := c.ldap, c.rawConn
+		c.mu.RUnlock()
+		if client == nil || raw == nil {
+			return TransportError(op, net.ErrClosed)
+		}
+		var err error
+		if client.IsClosing() {
+			err = TransportError(op, net.ErrClosed)
+		} else {
+			stop := closeOnCancel(ctx, raw)
+			err = send(client)
+			stop()
+		}
+		if ctx.Err() != nil {
+			return contextError(ctx, op, err)
+		}
+		if err == nil || attempt > 0 || !client.IsClosing() || !errors.Is(translateError(op, err), ErrTransport) {
+			return translateError(op, err)
+		}
+		if _, err := c.reconnect(ctx, client); err != nil {
+			return err
+		}
+	}
 }
 
 // translateError maps a go-ldap error onto our categorised model, keeping the
@@ -424,6 +805,13 @@ func startTLSRequest(raw net.Conn, timeout time.Duration) error {
 func translateError(op string, err error) error {
 	if err == nil {
 		return nil
+	}
+	var categorized *Error
+	if errors.As(err, &categorized) {
+		return err
+	}
+	if errors.Is(err, context.Canceled) {
+		return Cancelled(op)
 	}
 	var ldapErr *ldap.Error
 	if errors.As(err, &ldapErr) {
@@ -437,9 +825,6 @@ func translateError(op string, err error) error {
 			Interpretation:    interpretations[int(ldapErr.ResultCode)],
 		}
 		return ServerError(op, result)
-	}
-	if errors.Is(err, context.Canceled) {
-		return Cancelled(op)
 	}
 	return TransportError(op, err)
 }

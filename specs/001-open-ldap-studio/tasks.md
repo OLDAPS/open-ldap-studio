@@ -124,7 +124,7 @@ ends, **a write with no preview is inexpressible**, not merely discouraged.
 
 ### LDAP core — connection and bind
 
-- [ ] T045 Implement dial, LDAPS, StartTLS, keep-alive, and the reconnect policy in `internal/ldapx/conn.go`
+- [x] T045 Implement dial, LDAPS, StartTLS, keep-alive, and the reconnect policy in `internal/ldapx/conn.go`
 - [ ] T046 Implement simple, anonymous, SASL EXTERNAL, GSSAPI, and DIGEST-MD5 binds in `internal/ldapx/bind.go`
 - [ ] T047 Implement the in-house CRAM-MD5 bind mechanism (FR-022, not provided by go-ldap) in `internal/ldapx/cram_md5.go`
 - [ ] T048 [P] Implement Root DSE reading — naming contexts, supported controls, extensions, SASL mechanisms — in `internal/ldapx/rootdse.go`

@@ -1,166 +1,54 @@
 package bridge
 
 import (
-	"context"
 	"errors"
 
-	"github.com/open-ldap-studio/open-ldap-studio/internal/connections"
-	"github.com/open-ldap-studio/open-ldap-studio/internal/jobs"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/profiles"
 )
 
-// ListProfiles returns the connection list.
-func (b *Bridge) ListProfiles() []profiles.Summary { return b.profiles.List() }
-
-// GetProfile returns one profile. It cannot return a secret, because a Profile
-// has no field that could hold one.
-func (b *Bridge) GetProfile(id string) (profiles.Profile, error) { return b.profiles.Get(id) }
-
-// SaveProfile stores a connection profile.
-//
-// It takes the payload as JSON and decodes it strictly, so a payload carrying
-// a password field is refused rather than silently dropped. The frontend sends
-// JSON.stringify(profile); the strictness is the point, and it is the runtime
-// half of "a profile has nowhere to put a secret" (SC-008).
+func (b *Bridge) ListProfiles() []profiles.Summary               { return b.app.ListProfiles() }
+func (b *Bridge) GetProfile(id string) (profiles.Profile, error) { return b.app.GetProfile(id) }
 func (b *Bridge) SaveProfile(payload string) (profiles.Profile, error) {
-	p, err := profiles.DecodeStrict([]byte(payload))
+	profile, err := profiles.DecodeStrict([]byte(payload))
 	if err != nil {
 		return profiles.Profile{}, err
 	}
-	return b.profiles.Save(p)
+	return b.app.SaveProfile(profile)
 }
-
-// DeleteProfile removes a connection profile and the secret filed under it.
-//
-// Dropping the profile without the secret would leave material in the platform
-// store that nothing in this application can reach or name any more.
-func (b *Bridge) DeleteProfile(id string) error {
-	if err := b.Disconnect(id); err != nil && !errors.Is(err, connections.ErrNotConnected) {
-		return err
-	}
-	_ = b.secrets.Delete(secretRef(id))
-	return b.profiles.Delete(id)
-}
-
-// DuplicateProfile copies a profile, including its credential assignment.
+func (b *Bridge) DeleteProfile(id string) error { return b.app.DeleteProfile(id) }
 func (b *Bridge) DuplicateProfile(id string) (profiles.Profile, error) {
-	return b.profiles.Duplicate(id)
+	return b.app.DuplicateProfile(id)
 }
-
-// ListFolders returns the connection folders.
-func (b *Bridge) ListFolders() []profiles.Folder { return b.profiles.Folders() }
-
-// SaveFolder creates or renames a folder, rejecting a cycle.
-func (b *Bridge) SaveFolder(f profiles.Folder) (profiles.Folder, error) {
-	return b.profiles.SaveFolder(f)
+func (b *Bridge) ListFolders() []profiles.Folder { return b.app.ListFolders() }
+func (b *Bridge) SaveFolder(folder profiles.Folder) (profiles.Folder, error) {
+	return b.app.SaveFolder(folder)
 }
-
-// Connect opens a connection as a cancellable job: the bind may raise a
-// platform credential prompt, and that must not block the window (FR-005).
-func (b *Bridge) Connect(profileID string) (string, error) {
-	p, err := b.profiles.Get(profileID)
-	if err != nil {
-		return "", err
-	}
-
-	id := b.jobs.Start(b.context(), jobs.KindConnect, jobs.ModeExecute, profileID, 0,
-		func(ctx context.Context, reporter *jobs.Reporter) error {
-			reporter.Progress(0, 1, "connecting to "+p.Host)
-			conn, err := b.conns.Dial(ctx, p, nil)
-			if err != nil {
-				return err
-			}
-			reporter.Progress(1, 1, "connected")
-
-			// Read the Root DSE once and announce anything the server cannot
-			// do, before an operation fails for a reason nobody explained.
-			dse, _, err := ldapx.ReadRootDSE(ctx, conn)
-			if err == nil {
-				for _, missing := range dse.MissingCapabilities() {
-					b.Emit("capability:unavailable", map[string]any{
-						"profileId":  profileID,
-						"capability": missing.Capability,
-						"reason":     missing.Reason,
-					})
-				}
-			}
-			return nil
-		})
-	return id, nil
-}
-
-// Disconnect closes a connection.
-func (b *Bridge) Disconnect(profileID string) error {
-	return b.conns.Disconnect(profileID)
-}
-
-// ConnectionState returns what the status bar shows for a profile.
-func (b *Bridge) ConnectionState(profileID string) ConnState { return b.conns.State(profileID) }
-
-// ConnectionStates returns the state of every profile the session has touched.
-func (b *Bridge) ConnectionStates() []ConnState {
-	return b.conns.States()
-}
-
-// WhoAmI asks the server which identity it believes is bound (FR-011).
-func (b *Bridge) WhoAmI(profileID string) (IdentityResult, error) {
-	conn, err := b.conns.Conn(profileID)
-	if err != nil {
-		return IdentityResult{}, err
-	}
-	identity, result, err := ldapx.WhoAmI(b.context(), conn)
+func (b *Bridge) Connect(id string) (string, error)   { return b.app.Connect(b.context(), id) }
+func (b *Bridge) Disconnect(id string) error          { return b.app.Disconnect(id) }
+func (b *Bridge) ConnectionState(id string) ConnState { return b.app.ConnectionState(id) }
+func (b *Bridge) ConnectionStates() []ConnState       { return b.app.ConnectionStates() }
+func (b *Bridge) WhoAmI(id string) (IdentityResult, error) {
+	identity, result, err := b.app.WhoAmI(b.context(), id)
 	return IdentityResult{Identity: identity, Result: result}, err
 }
 
-// RootDSE returns what the server publishes about itself (FR-012).
-func (b *Bridge) RootDSE(profileID string) (RootDSEResult, error) {
-	conn, err := b.conns.Conn(profileID)
-	if err != nil {
-		return RootDSEResult{}, err
-	}
-	dse, result, err := ldapx.ReadRootDSE(b.context(), conn)
+func (b *Bridge) RootDSE(id string) (RootDSEResult, error) {
+	dse, result, err := b.app.RootDSE(b.context(), id)
 	return RootDSEResult{RootDSE: dse, Result: result}, err
 }
 
-// ValidateFilter reports whether a filter parses. It never contacts a server
-// and never returns a rewritten filter (FR-028).
 func (b *Bridge) ValidateFilter(filter string) ldapx.FilterDiagnostic {
-	return ldapx.ValidateFilter(filter)
+	return b.app.ValidateFilter(filter)
 }
 
-// ListChildren fetches one page of a container's children, reporting a
-// server-side truncation rather than showing a short list as complete
-// (FR-018).
-func (b *Bridge) ListChildren(profileID, dn string, page ldapx.PageRequest) (ldapx.Page, error) {
-	conn, err := b.conns.Conn(profileID)
-	if err != nil {
-		return ldapx.Page{}, err
-	}
-
-	result, degradations, err := ldapx.ListChildren(b.context(), conn, dn, page)
-	b.announce(profileID, degradations)
-	return result, err
+func (b *Bridge) ListChildren(id, dn string, page ldapx.PageRequest) (ldapx.Page, error) {
+	return b.app.ListChildren(b.context(), id, dn, page)
 }
 
-// ReadEntry reads one entry, optionally with its operational attributes.
-func (b *Bridge) ReadEntry(profileID, dn string, opts ldapx.ReadOptions) (EntryResult, error) {
-	conn, err := b.conns.Conn(profileID)
-	if err != nil {
-		return EntryResult{}, err
-	}
-	entry, result, err := ldapx.ReadEntry(b.context(), conn, dn, opts)
+func (b *Bridge) ReadEntry(id, dn string, options ldapx.ReadOptions) (EntryResult, error) {
+	entry, result, err := b.app.ReadEntry(b.context(), id, dn, options)
 	return EntryResult{Entry: entry, Result: result}, err
-}
-
-// announce turns each degradation into a capability:unavailable event. A
-// degradation the user is not told about is the failure SC-016 tests for.
-func (b *Bridge) announce(profileID string, degradations []ldapx.Degradation) {
-	for _, d := range degradations {
-		b.Emit("capability:unavailable", map[string]any{
-			"profileId": profileID, "capability": d.Capability, "reason": d.Reason,
-		})
-	}
 }
 
 // DeleteFolder deletes a folder by ID.

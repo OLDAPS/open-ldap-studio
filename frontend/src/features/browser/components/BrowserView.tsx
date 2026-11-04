@@ -11,9 +11,12 @@ import { DitTree } from './DitTree';
 import { EntryView } from './EntryView';
 import { Workspace } from '@/shell/Workspace';
 import { useSession } from '@/app/session';
+import { useDitTreeViewModel } from '../useDitTreeViewModel';
 
 export function BrowserView() {
   const connection = useSession((s) => s.activeConnection());
+  const profileId = useSession((s) => s.activeProfileId);
+  const tree = useDitTreeViewModel(profileId, connection?.state === 'connected');
   const label = connection?.serverIdentity ?? 'no connection';
 
   return (
@@ -25,7 +28,14 @@ export function BrowserView() {
             <Button type="button" variant="ghost" size="xs" title="Find" aria-label="Find">
               ⌕
             </Button>
-            <Button type="button" variant="ghost" size="xs" title="Refresh" aria-label="Refresh">
+            <Button
+              type="button"
+              variant="ghost"
+              size="xs"
+              title="Refresh"
+              aria-label="Refresh"
+              onClick={tree.refresh}
+            >
               ⟳
             </Button>
             <Button type="button" variant="ghost" size="xs" title="More" aria-label="More">
@@ -33,7 +43,7 @@ export function BrowserView() {
             </Button>
           </span>
         </div>
-        <DitTree />
+        <DitTree tree={tree} />
       </aside>
 
       <Workspace>

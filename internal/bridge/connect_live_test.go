@@ -1,12 +1,16 @@
 //go:build integration
 
-package bridge
+package bridge_test
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/open-ldap-studio/open-ldap-studio/internal/bootstrap"
+	"github.com/open-ldap-studio/open-ldap-studio/internal/bridge"
+	"github.com/open-ldap-studio/open-ldap-studio/internal/secrets"
 
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/logging"
@@ -29,27 +33,27 @@ var (
 	livePort int
 )
 
-func liveBridge(t *testing.T) *Bridge {
+func liveBridge(t *testing.T) *bridge.Bridge {
 	t.Helper()
+	b, _ := liveBridgeWithProvider(t)
+	return b
+}
 
-	// Everything this bridge writes goes to the test's own directory, so a run
-	// cannot disturb the developer's real connection list.
-	t.Setenv("XDG_DATA_HOME", t.TempDir())
-	t.Setenv("HOME", t.TempDir())
-
-	paths, err := logging.DefaultPaths()
-	if err != nil {
-		t.Fatalf("paths: %v", err)
-	}
+func liveBridgeWithProvider(t *testing.T) (*bridge.Bridge, secrets.Provider) {
+	t.Helper()
+	paths := logging.Paths{Data: t.TempDir(), Logs: t.TempDir()}
 	logs, err := logging.Open(paths)
 	if err != nil {
-		t.Fatalf("logs: %v", err)
+		t.Fatal(err)
 	}
 	t.Cleanup(func() { _ = logs.Close() })
-
-	b := New(logs)
+	provider := secrets.NewSession()
+	b, err := bootstrap.New(logs, bootstrap.Options{Paths: &paths, Secrets: provider})
+	if err != nil {
+		t.Fatal(err)
+	}
 	t.Cleanup(b.Shutdown)
-	return b
+	return b, provider
 }
 
 func liveProfile() profiles.Profile {
@@ -162,7 +166,7 @@ func TestLiveSaveStoreConnect(t *testing.T) {
 		t.Fatalf("Connect: %v", err)
 	}
 
-	state := waitForState(t, b, saved.ID, StateConnected)
+	state := waitForState(t, b, saved.ID, bridge.StateConnected)
 	if state.BoundDN == "" {
 		t.Error("connected with no bound DN")
 	}
@@ -182,15 +186,15 @@ func TestLiveSaveStoreConnect(t *testing.T) {
 	if err := b.Disconnect(saved.ID); err != nil {
 		t.Fatalf("Disconnect: %v", err)
 	}
-	if got := b.ConnectionState(saved.ID).State; got != StateDisconnected {
-		t.Errorf("state after disconnect = %q, want %q", got, StateDisconnected)
+	if got := b.ConnectionState(saved.ID).State; got != bridge.StateDisconnected {
+		t.Errorf("state after disconnect = %q, want %q", got, bridge.StateDisconnected)
 	}
 }
 
 // Deleting a profile must take its secret with it, or material is left in the
 // platform store that nothing can name any more.
 func TestLiveDeleteProfileDropsSecret(t *testing.T) {
-	b := liveBridge(t)
+	b, provider := liveBridgeWithProvider(t)
 
 	saved, err := b.SaveProfile(encode(t, liveProfile()))
 	if err != nil {
@@ -202,7 +206,7 @@ func TestLiveDeleteProfileDropsSecret(t *testing.T) {
 	if err := b.DeleteProfile(saved.ID); err != nil {
 		t.Fatalf("DeleteProfile: %v", err)
 	}
-	if _, err := b.secrets.Get(secretRef(saved.ID)); err == nil {
+	if _, err := provider.Get("profile/" + saved.ID); err == nil {
 		t.Error("the secret outlived the profile it belonged to")
 	}
 }
@@ -217,16 +221,16 @@ func TestLiveSaveProfileRefusesASecret(t *testing.T) {
 	}
 }
 
-func waitForState(t *testing.T, b *Bridge, profileID string, want State) ConnState {
+func waitForState(t *testing.T, b *bridge.Bridge, profileID string, want bridge.State) bridge.ConnState {
 	t.Helper()
 	deadline := time.Now().Add(15 * time.Second)
-	var last ConnState
+	var last bridge.ConnState
 	for time.Now().Before(deadline) {
 		last = b.ConnectionState(profileID)
 		if last.State == want {
 			return last
 		}
-		if last.State == StateDisconnected && last.Message != "" {
+		if last.State == bridge.StateDisconnected && last.Message != "" {
 			t.Fatalf("connect failed: %s", last.Message)
 		}
 		time.Sleep(100 * time.Millisecond)

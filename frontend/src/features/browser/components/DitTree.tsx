@@ -16,19 +16,16 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 
 import { rdnOf } from '../dn';
 import { TreeFilterBox } from './TreeNodes';
-import { useDitTreeViewModel } from '../useDitTreeViewModel';
-import type { Row } from '../useDitTreeViewModel';
+import type { Row, DitTreeViewModel } from '../useDitTreeViewModel';
 import { useSession } from '@/app/session';
 
-export function DitTree() {
+export function DitTree({ tree }: { tree: DitTreeViewModel }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [filter, setFilter] = useState('');
 
   const connection = useSession((s) => s.activeConnection());
   const profileId = useSession((s) => s.activeProfileId);
   const openTab = useSession((s) => s.openTab);
-
-  const tree = useDitTreeViewModel(profileId, connection?.state === 'connected');
 
   // The filter narrows what has been fetched. It does not issue a search, so
   // it can never time out — and the placeholder says as much.
@@ -99,20 +96,26 @@ export function DitTree() {
                   className="tree-row tree-row--more"
                   style={style}
                   disabled={row.loading}
-                  onClick={() => tree.fetchMore(row.parentDn)}
+                  onClick={() =>
+                    row.restartRequired ? tree.restart(row.parentDn) : tree.fetchMore(row.parentDn)
+                  }
                   title={
-                    row.truncated
-                      ? 'The server stopped early on a limit it enforced'
-                      : 'Fetch the next page of children'
+                    row.restartRequired
+                      ? 'The paging session changed; restart from the first page'
+                      : row.truncated
+                        ? 'The server stopped early on a limit it enforced'
+                        : 'Fetch the next page of children'
                   }
                 >
                   {row.loading
                     ? 'fetching…'
-                    : row.truncated
-                      ? `▾ ${row.loaded.toLocaleString()} loaded · server stopped at its limit${
-                          row.serverLimit ? ` (${row.serverLimit})` : ''
-                        }`
-                      : `▾ fetch more · ${row.loaded.toLocaleString()} loaded`}
+                    : row.restartRequired
+                      ? '↻ restart children from first page'
+                      : row.truncated
+                        ? `▾ ${row.loaded.toLocaleString()} loaded · server stopped at its limit${
+                            row.serverLimit ? ` (${row.serverLimit})` : ''
+                          }`
+                        : `▾ fetch more · ${row.loaded.toLocaleString()} loaded`}
                 </Button>
               );
             }

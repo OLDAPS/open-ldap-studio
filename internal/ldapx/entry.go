@@ -94,6 +94,8 @@ type Page struct {
 	Entries []Entry `json:"entries"`
 	// Cookie continues a paged result. Empty means there is no next page.
 	Cookie []byte `json:"cookie,omitempty" ts_type:"string"`
+	// SessionID binds Cookie to the transport that issued it.
+	SessionID string `json:"sessionId"`
 	// LoadedCount is how many entries have been fetched so far across pages.
 	LoadedCount int `json:"loadedCount"`
 	// ServerLimit is the limit the server reported enforcing, 0 if none.
@@ -109,6 +111,8 @@ type PageRequest struct {
 	Size int `json:"size"`
 	// Cookie continues a previous page.
 	Cookie []byte `json:"cookie,omitempty" ts_type:"string"`
+	// SessionID must accompany a continuation cookie; it is returned by Page.
+	SessionID string `json:"sessionId,omitempty"`
 	// IncludeOperational requests operational attributes explicitly with '+'.
 	// They are never stripped from a response (FR-027).
 	IncludeOperational bool `json:"includeOperational"`

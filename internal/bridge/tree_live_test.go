@@ -1,18 +1,20 @@
 //go:build integration
 
-package bridge
+package bridge_test
 
 import (
 	"encoding/json"
 	"strings"
 	"testing"
 
+	"github.com/open-ldap-studio/open-ldap-studio/internal/bridge"
+
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 )
 
 // connectLive saves a profile, stores its secret and opens it, returning the
 // profile id. It is the state every tree test starts from.
-func connectLive(t *testing.T) (*Bridge, string) {
+func connectLive(t *testing.T) (*bridge.Bridge, string) {
 	t.Helper()
 	b := liveBridge(t)
 
@@ -26,7 +28,7 @@ func connectLive(t *testing.T) (*Bridge, string) {
 	if _, err := b.Connect(saved.ID); err != nil {
 		t.Fatalf("Connect: %v", err)
 	}
-	waitForState(t, b, saved.ID, StateConnected)
+	waitForState(t, b, saved.ID, bridge.StateConnected)
 	return b, saved.ID
 }
 
@@ -118,9 +120,10 @@ func TestLiveTreePaging(t *testing.T) {
 	}
 
 	cookie := first.Cookie
+	sessionID := first.SessionID
 	pages := 1
 	for len(cookie) > 0 && pages < 10 {
-		next, err := b.ListChildren(id, people, ldapx.PageRequest{Size: 100, Cookie: cookie})
+		next, err := b.ListChildren(id, people, ldapx.PageRequest{Size: 100, Cookie: cookie, SessionID: sessionID})
 		if err != nil {
 			t.Fatalf("page %d: %v", pages+1, err)
 		}
@@ -131,6 +134,7 @@ func TestLiveTreePaging(t *testing.T) {
 			seen[e.DN] = true
 		}
 		cookie = next.Cookie
+		sessionID = next.SessionID
 		pages++
 	}
 
@@ -162,7 +166,7 @@ func TestLiveTreeCookieSurvivesJSON(t *testing.T) {
 	}
 
 	// Feed the round-tripped cookie back, exactly as the frontend does.
-	second, err := b.ListChildren(id, people, ldapx.PageRequest{Size: 100, Cookie: decoded.Cookie})
+	second, err := b.ListChildren(id, people, ldapx.PageRequest{Size: 100, Cookie: decoded.Cookie, SessionID: decoded.SessionID})
 	if err != nil {
 		t.Fatalf("continuation with a JSON round-tripped cookie: %v", err)
 	}

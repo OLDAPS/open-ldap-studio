@@ -2,7 +2,6 @@ package ldapx
 
 import (
 	"context"
-	"errors"
 
 	"github.com/go-ldap/ldap/v3"
 
@@ -15,17 +14,19 @@ import (
 // authorisation, or a reconnect, the DN the client typed is not necessarily
 // the identity the server is applying (FR-011).
 func WhoAmI(ctx context.Context, c *Conn) (string, Result, error) {
-	client := c.client()
-	if client == nil {
-		return "", Result{}, TransportError("whoami", errors.New("the connection is not open"))
-	}
-
-	res, err := client.WhoAmI(nil)
+	var identity string
+	err := c.readOperation(ctx, "whoami", func(client *ldap.Conn) error {
+		res, err := client.WhoAmI(nil)
+		if err == nil {
+			identity = res.AuthzID
+		}
+		return err
+	})
 	result := resultFrom(err)
 	if err != nil {
 		return "", result, translateError("whoami", err)
 	}
-	return res.AuthzID, result, nil
+	return identity, result, nil
 }
 
 // PasswordModify performs the Password Modify extended operation (RFC 3062).
@@ -37,30 +38,28 @@ func WhoAmI(ctx context.Context, c *Conn) (string, Result, error) {
 // A server that generates the new password returns it, and it is handed
 // straight back to the caller for display once — it is never stored.
 func PasswordModify(ctx context.Context, c *Conn, dn string, oldSecret, newSecret secrets.Secret) (string, Result, error) {
-	client := c.client()
-	if client == nil {
-		return "", Result{}, TransportError("passwordModify", errors.New("the connection is not open"))
-	}
-
 	req := ldap.NewPasswordModifyRequest(dn, string(oldSecret.Bytes()), string(newSecret.Bytes()))
-	res, err := client.PasswordModify(req)
-	result := resultFrom(err)
-	if err != nil {
-		return "", result, translateError("passwordModify", err)
-	}
-	return res.GeneratedPassword, result, nil
+	var generated string
+	result, err := c.write(ctx, "passwordModify", func(client *ldap.Conn) error {
+		res, err := client.PasswordModify(req)
+		if err == nil {
+			generated = res.GeneratedPassword
+		}
+		return err
+	})
+	return generated, result, err
 }
 
 // Compare performs an LDAP compare, whose two success codes — compareTrue (6)
 // and compareFalse (5) — are both returned as results rather than as a boolean
 // with the code discarded.
 func Compare(ctx context.Context, c *Conn, dn, attribute string, value []byte) (bool, Result, error) {
-	client := c.client()
-	if client == nil {
-		return false, Result{}, TransportError("compare", errors.New("the connection is not open"))
-	}
-
-	matched, err := client.Compare(dn, attribute, string(value))
+	var matched bool
+	err := c.readOperation(ctx, "compare", func(client *ldap.Conn) error {
+		var err error
+		matched, err = client.Compare(dn, attribute, string(value))
+		return err
+	})
 	if err != nil {
 		result := resultFrom(err)
 		// compareFalse is an answer, not a failure.
@@ -69,5 +68,9 @@ func Compare(ctx context.Context, c *Conn, dn, attribute string, value []byte) (
 		}
 		return false, result, translateError("compare", err)
 	}
-	return matched, NewResult(6, "", ""), nil
+	code := 5 // compareFalse
+	if matched {
+		code = 6 // compareTrue
+	}
+	return matched, NewResult(code, "", ""), nil
 }

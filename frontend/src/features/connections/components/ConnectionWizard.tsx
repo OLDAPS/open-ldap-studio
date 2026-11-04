@@ -23,11 +23,11 @@ import { Checkbox } from '@/components/ui/checkbox';
  * it is a Java artefact with no meaning in a Go client (deviation D5).
  */
 import { useState } from 'react';
+import { useConnectionWizardViewModel } from '../useConnectionWizardViewModel';
+import type { ConnectionWizardViewModel } from '../useConnectionWizardViewModel';
 
 import { AuthStep } from './AuthStep';
-import { DEFAULT_PORT, draftProblems, emptyDraft, toProfile } from '../model';
 import type { ConnectionDraft } from '../model';
-import { bridge, isEmbedded } from '@/bridge/client';
 import type { Encryption, TestResult } from '@/bridge/types';
 
 const STEPS = ['Network', 'Authentication', 'Browser options', 'Edit options'] as const;
@@ -39,71 +39,33 @@ export function ConnectionWizard({
   onClose: () => void;
   onSaved?: (profileId: string) => void;
 }) {
+  const model = useConnectionWizardViewModel({ onClose, onSaved });
+  return <ConnectionWizardContent model={model} onClose={onClose} />;
+}
+
+export function ConnectionWizardContent({
+  model,
+  onClose,
+}: {
+  model: ConnectionWizardViewModel;
+  onClose(): void;
+}) {
   const [step, setStep] = useState(0);
-  const [draft, setDraft] = useState<ConnectionDraft>(emptyDraft);
-  const [portEdited, setPortEdited] = useState(false);
-
-  const [test, setTest] = useState<TestResult | undefined>();
-  const [testing, setTesting] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | undefined>();
-
-  const patch = (changes: Partial<ConnectionDraft>) => {
-    setDraft((current) => ({ ...current, ...changes }));
-    // Any edit invalidates the last check: a green tick that describes a
-    // hostname the user has since changed is worse than no tick at all.
-    setTest(undefined);
-  };
-
-  // Changing the transport moves the port with it, until the user names one of
-  // their own — after that it is theirs and we stop touching it.
-  const chooseEncryption = (encryption: Encryption) => {
-    patch(portEdited ? { encryption } : { encryption, port: DEFAULT_PORT[encryption] });
-  };
-
-  const runTest = async (withBind: boolean) => {
-    setError(undefined);
-    setTesting(true);
-    setTest(undefined);
-    try {
-      const profile = toProfile(draft);
-      const result = await bridge.testConnection(
-        withBind ? profile : { ...profile, bindMethod: 'anonymous', bindDn: '' },
-        withBind ? draft.secret : '',
-      );
-      setTest(result);
-      // The server just told us its naming contexts; that is the base DN the
-      // next page is about to ask for, so offer it rather than asking twice.
-      const firstContext = result.namingContexts?.[0];
-      if (!draft.baseDn && firstContext) {
-        setDraft((current) => ({ ...current, baseDn: firstContext }));
-      }
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const finish = async () => {
-    setError(undefined);
-    setSaving(true);
-    try {
-      const saved = await bridge.saveProfile(toProfile(draft));
-      if (draft.bindMethod !== 'anonymous' && draft.secret) {
-        await bridge.storeProfileSecret(saved.id, draft.secret);
-      }
-      onSaved?.(saved.id);
-      onClose();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setSaving(false);
-    }
-  };
-
-  const problems = draftProblems(draft);
-  const canFinish = problems.length === 0 && !saving && isEmbedded();
+  const {
+    draft,
+    test,
+    testing,
+    saving,
+    error,
+    problems,
+    canFinish,
+    patch,
+    chooseEncryption,
+    changePort,
+    runTest,
+    finish,
+    available,
+  } = model;
 
   return (
     <>
@@ -140,10 +102,7 @@ export function ConnectionWizard({
                 draft={draft}
                 patch={patch}
                 onEncryptionChange={chooseEncryption}
-                onPortChange={(port) => {
-                  setPortEdited(true);
-                  patch({ port });
-                }}
+                onPortChange={changePort}
                 onCheck={() => void runTest(false)}
                 busy={testing}
               />
@@ -169,7 +128,7 @@ export function ConnectionWizard({
               </Alert>
             ) : null}
 
-            {!isEmbedded() ? (
+            {!available ? (
               <Alert className="strip strip--warning">
                 <span className="strip__title">No backend</span>
                 <span>
