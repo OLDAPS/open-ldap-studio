@@ -5,9 +5,12 @@
  * payload carrying a secret, so a frontend that put one there would fail at
  * runtime in the one place a user cannot work around. This pins the split.
  */
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+import { ApplicationClientProvider } from '@/app/ApplicationClientProvider';
+import { fakeApplicationClient } from '../../helpers/applicationClient';
 
 import { ConnectionWizard } from '@/features/connections/components/ConnectionWizard';
 
@@ -15,14 +18,18 @@ const saveProfile = vi.fn();
 const storeProfileSecret = vi.fn();
 const testConnection = vi.fn();
 
-vi.mock('@/bridge/client', () => ({
-  isEmbedded: () => true,
-  bridge: {
-    saveProfile: (...args: unknown[]) => saveProfile(...args),
-    storeProfileSecret: (...args: unknown[]) => storeProfileSecret(...args),
-    testConnection: (...args: unknown[]) => testConnection(...args),
-  },
-}));
+const client = fakeApplicationClient({
+  isAvailable: () => true,
+  saveProfile,
+  storeProfileSecret,
+  testConnection,
+});
+const renderWizard = (props: Parameters<typeof ConnectionWizard>[0]) =>
+  render(
+    <ApplicationClientProvider client={client}>
+      <ConnectionWizard {...props} />
+    </ApplicationClientProvider>,
+  );
 
 beforeEach(() => {
   saveProfile.mockReset().mockResolvedValue({ id: 'p1', name: 'local-dev' });
@@ -52,10 +59,38 @@ async function fillNetworkAndAuth(user: ReturnType<typeof userEvent.setup>) {
 }
 
 describe('connection wizard — saving', () => {
+  it('discards a check result after the hostname changes', async () => {
+    let resolve!: (value: unknown) => void;
+    testConnection.mockReturnValue(
+      new Promise((done) => {
+        resolve = done;
+      }),
+    );
+    const user = userEvent.setup();
+    renderWizard({ onClose: () => {} });
+    await user.type(screen.getByLabelText('Hostname'), 'old.example.org');
+    await user.click(screen.getByRole('button', { name: 'Check network parameter' }));
+    await user.clear(screen.getByLabelText('Hostname'));
+    await user.type(screen.getByLabelText('Hostname'), 'new.example.org');
+    await act(async () =>
+      resolve({
+        reachable: true,
+        encrypted: true,
+        tlsVerified: true,
+        bound: false,
+        namingContexts: ['dc=old,dc=org'],
+        result: { code: 0 },
+      }),
+    );
+    expect(screen.queryByText(/✓ reachable/)).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '3 · Browser options' }));
+    expect(screen.getByLabelText('Base DN')).toHaveValue('');
+  });
+
   it('saves the profile and files the secret through a separate call', async () => {
     const user = userEvent.setup();
     const onSaved = vi.fn();
-    render(<ConnectionWizard onClose={() => {}} onSaved={onSaved} />);
+    renderWizard({ onClose: () => {}, onSaved });
 
     await fillNetworkAndAuth(user);
     await user.click(screen.getByRole('button', { name: 'Finish' }));
@@ -76,7 +111,7 @@ describe('connection wizard — saving', () => {
 
   it('does not file a secret for an anonymous bind', async () => {
     const user = userEvent.setup();
-    render(<ConnectionWizard onClose={() => {}} />);
+    renderWizard({ onClose: () => {} });
 
     await user.type(screen.getByLabelText('Hostname'), 'localhost');
     await user.click(screen.getByRole('button', { name: '2 · Authentication' }));
@@ -89,7 +124,7 @@ describe('connection wizard — saving', () => {
 
   it('checks the connection without saving anything', async () => {
     const user = userEvent.setup();
-    render(<ConnectionWizard onClose={() => {}} />);
+    renderWizard({ onClose: () => {} });
 
     await user.type(screen.getByLabelText('Hostname'), 'localhost');
     await user.click(screen.getByRole('button', { name: 'Check network parameter' }));
@@ -108,7 +143,7 @@ describe('connection wizard — saving', () => {
 
   it('offers the base DN the server reported', async () => {
     const user = userEvent.setup();
-    render(<ConnectionWizard onClose={() => {}} />);
+    renderWizard({ onClose: () => {} });
 
     await user.type(screen.getByLabelText('Hostname'), 'localhost');
     await user.click(screen.getByRole('button', { name: 'Check network parameter' }));
@@ -133,7 +168,7 @@ describe('connection wizard — saving', () => {
     });
 
     const user = userEvent.setup();
-    render(<ConnectionWizard onClose={() => {}} />);
+    renderWizard({ onClose: () => {} });
 
     await fillNetworkAndAuth(user);
     await user.click(screen.getByRole('button', { name: 'Check authentication' }));
@@ -147,12 +182,52 @@ describe('connection wizard — saving', () => {
 
     const user = userEvent.setup();
     const onClose = vi.fn();
-    render(<ConnectionWizard onClose={onClose} />);
+    renderWizard({ onClose });
 
     await fillNetworkAndAuth(user);
     await user.click(screen.getByRole('button', { name: 'Finish' }));
 
     expect(await screen.findByText('connections.json is read-only')).toBeInTheDocument();
     expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('reuses the saved profile when credential storage fails and Finish is retried', async () => {
+    let created = 0;
+    saveProfile.mockImplementation(async (profile: Record<string, unknown>) => ({
+      ...profile,
+      id: profile.id ?? `p${++created}`,
+    }));
+    storeProfileSecret.mockRejectedValueOnce(new Error('credential store is locked'));
+
+    const user = userEvent.setup();
+    const onSaved = vi.fn();
+    const onClose = vi.fn();
+    renderWizard({ onClose, onSaved });
+    await fillNetworkAndAuth(user);
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+
+    expect(await screen.findByText('credential store is locked')).toBeInTheDocument();
+    expect(onSaved).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    expect(screen.getByLabelText('Password')).toHaveValue('adminpassword');
+
+    // Edits after the failed attempt must keep the identity of the saved draft.
+    await user.clear(screen.getByLabelText('Bind DN'));
+    await user.type(screen.getByLabelText('Bind DN'), 'cn=reader,dc=example,dc=org');
+    await user.click(screen.getByRole('button', { name: 'Finish' }));
+
+    await waitFor(() => expect(onClose).toHaveBeenCalledTimes(1));
+    expect(saveProfile).toHaveBeenCalledTimes(2);
+    expect(saveProfile.mock.calls[1]?.[0]).toMatchObject({
+      id: 'p1',
+      bindDn: 'cn=reader,dc=example,dc=org',
+    });
+    expect(created).toBe(1);
+    expect(storeProfileSecret.mock.calls).toEqual([
+      ['p1', 'adminpassword'],
+      ['p1', 'adminpassword'],
+    ]);
+    expect(onSaved).toHaveBeenCalledExactlyOnceWith('p1');
+    expect(screen.getByLabelText('Password')).toHaveValue('');
   });
 });

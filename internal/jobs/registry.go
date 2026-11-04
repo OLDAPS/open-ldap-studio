@@ -12,7 +12,7 @@ import (
 	"github.com/open-ldap-studio/open-ldap-studio/internal/ldapx"
 )
 
-// State is a job's lifecycle position. The four terminal states are distinct:
+// State is a job's lifecycle position. The terminal states are distinct:
 // partiallyComplete is never folded into succeeded, because a bulk run that
 // changed 900 of 1000 entries did not succeed (FR-050, events.md).
 type State string
@@ -23,6 +23,7 @@ const (
 	StateFailed            State = "failed"
 	StateCancelled         State = "cancelled"
 	StatePartiallyComplete State = "partiallyComplete"
+	StateIndeterminate     State = "indeterminate"
 )
 
 // IsTerminal reports whether a job in this state will not change again.
@@ -58,14 +59,15 @@ const (
 // for the run (FR-097, error-model.md § Multi-entry operations).
 type Outcome struct {
 	DN     string        `json:"dn"`
-	Status string        `json:"status"` // succeeded | failed | skipped
+	Status string        `json:"status"` // succeeded | failed | skipped | indeterminate
 	Result *ldapx.Result `json:"result,omitempty"`
 }
 
 const (
-	OutcomeSucceeded = "succeeded"
-	OutcomeFailed    = "failed"
-	OutcomeSkipped   = "skipped"
+	OutcomeSucceeded     = "succeeded"
+	OutcomeFailed        = "failed"
+	OutcomeSkipped       = "skipped"
+	OutcomeIndeterminate = "indeterminate"
 )
 
 // Job is the observable state of one cancellable operation.
@@ -185,8 +187,10 @@ func (r *Registry) finish(ctx context.Context, id string, err error) {
 
 	e.job.State = terminalState(ctx, err, e.outcomes)
 	e.job.EndedAt = r.clock()
-	if err != nil && !errors.Is(err, context.Canceled) {
+	if err != nil && (e.job.State == StateIndeterminate || !errors.Is(err, context.Canceled)) {
 		e.job.Err = err.Error()
+	} else if e.job.State == StateIndeterminate {
+		e.job.Err = "the write outcome is unknown; cancellation does not establish rollback"
 	}
 	e.job.Summary = summarise(e.job.State, e.outcomes, e.job.Done, e.job.Total)
 	finished := e.job
@@ -200,6 +204,14 @@ func (r *Registry) finish(ctx context.Context, id string, err error) {
 }
 
 func terminalState(ctx context.Context, err error, outcomes []Outcome) State {
+	if ldapx.CategoryOf(err) == ldapx.CategoryIndeterminate {
+		return StateIndeterminate
+	}
+	for _, outcome := range outcomes {
+		if outcome.Status == OutcomeIndeterminate {
+			return StateIndeterminate
+		}
+	}
 	if errors.Is(err, context.Canceled) || (ctx.Err() != nil && err != nil) {
 		return StateCancelled
 	}
@@ -234,7 +246,7 @@ func summarise(state State, outcomes []Outcome, done, total int) string {
 	if len(outcomes) == 0 {
 		return fmt.Sprintf("%s — %d of %d", state, done, total)
 	}
-	var succeeded, failed, skipped int
+	var succeeded, failed, skipped, indeterminate int
 	for _, o := range outcomes {
 		switch o.Status {
 		case OutcomeSucceeded:
@@ -243,7 +255,13 @@ func summarise(state State, outcomes []Outcome, done, total int) string {
 			failed++
 		case OutcomeSkipped:
 			skipped++
+		case OutcomeIndeterminate:
+			indeterminate++
 		}
+	}
+	if indeterminate > 0 {
+		return fmt.Sprintf("%s — %d succeeded, %d failed, %d skipped, %d indeterminate of %d",
+			state, succeeded, failed, skipped, indeterminate, len(outcomes))
 	}
 	return fmt.Sprintf("%s — %d succeeded, %d failed, %d skipped of %d",
 		state, succeeded, failed, skipped, len(outcomes))

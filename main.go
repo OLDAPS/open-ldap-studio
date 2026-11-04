@@ -21,6 +21,7 @@ import (
 	"github.com/wailsapp/wails/v2/pkg/options/mac"
 	"github.com/wailsapp/wails/v2/pkg/options/windows"
 
+	"github.com/open-ldap-studio/open-ldap-studio/internal/bootstrap"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/bridge"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/logging"
 	"github.com/open-ldap-studio/open-ldap-studio/internal/version"
@@ -50,7 +51,11 @@ func main() {
 	}
 	defer func() { _ = logs.Close() }()
 
-	app := bridge.New(logs)
+	app, err := bootstrap.New(logs, bootstrap.Options{})
+	if err != nil {
+		slog.Error("cannot compose application", "err", err)
+		os.Exit(1)
+	}
 
 	err = wails.Run(desktopOptions(app))
 	if err != nil {

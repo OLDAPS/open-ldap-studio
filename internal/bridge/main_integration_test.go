@@ -1,6 +1,6 @@
 //go:build integration
 
-package bridge
+package bridge_test
 
 import (
 	"context"

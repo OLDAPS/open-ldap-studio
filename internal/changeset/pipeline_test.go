@@ -123,6 +123,41 @@ func replaceMail(dn, value string) Input {
 	}
 }
 
+type sessionDirectory struct {
+	*fakeDirectory
+	session string
+}
+
+func (d *sessionDirectory) SessionID() string { return d.session }
+
+func TestReconnectRequiresAFreshPreviewEvenWhenEntriesAreUnchanged(t *testing.T) {
+	const dn = "cn=a,dc=example,dc=com"
+	dir := &sessionDirectory{fakeDirectory: newFakeDirectory(testEntry(dn, "a@example.com")), session: "first"}
+	p := newTestPipeline(t, dir, writableProfile())
+	in := replaceMail(dn, "b@example.com")
+	preview, err := p.Preview(t.Context(), in, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	dir.session = "reconnected"
+	if _, err := p.Commit(t.Context(), preview.Token.Token, nil); !errors.Is(err, ErrSessionChanged) {
+		t.Fatalf("commit on replacement session = %v, want a fresh preview", err)
+	}
+	if len(dir.writes()) != 0 {
+		t.Fatalf("old confirmation dispatched: %v", dir.writes())
+	}
+	preview, err = p.Preview(t.Context(), in, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := p.Commit(t.Context(), preview.Token.Token, nil); err != nil {
+		t.Fatalf("fresh confirmation: %v", err)
+	}
+	if len(dir.writes()) != 1 {
+		t.Fatalf("fresh confirmation dispatched %d writes", len(dir.writes()))
+	}
+}
+
 // Contract C13 — a read-only profile is refused a preview token at the
 // changeset boundary, before any UI check.
 

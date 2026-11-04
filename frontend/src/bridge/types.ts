@@ -75,14 +75,17 @@ export type ConnectionState = 'disconnected' | 'connecting' | 'connected' | 'los
 
 export type ConnState = Omit<connections.ConnState, 'state'> & { state: ConnectionState };
 
-export type JobState = 'running' | 'succeeded' | 'failed' | 'cancelled' | 'partiallyComplete';
+export type JobState =
+  'running' | 'succeeded' | 'failed' | 'cancelled' | 'partiallyComplete' | 'indeterminate';
 
 export type Job = Omit<jobs.Job, 'mode' | 'state'> & {
   mode: 'execute' | 'dryRun';
   state: JobState;
 };
 
-export type Outcome = Omit<jobs.Outcome, 'status'> & { status: 'succeeded' | 'failed' | 'skipped' };
+export type Outcome = Omit<jobs.Outcome, 'status'> & {
+  status: 'succeeded' | 'failed' | 'skipped' | 'indeterminate';
+};
 
 export type OpType =
   | 'addAttr'

@@ -173,10 +173,11 @@ func TestOnlyExpectedPackagesTouchTheSecretsPackage(t *testing.T) {
 	// bridge accepts short-lived secrets from transport calls. Nothing else has
 	// a reason to hold one.
 	permitted := map[string]bool{
-		"internal/secrets":     true,
-		"internal/ldapx":       true,
-		"internal/connections": true,
-		"internal/bridge":      true,
+		"internal/secrets":                 true,
+		"internal/ldapx":                   true,
+		"internal/connections":             true,
+		"internal/application/connections": true,
+		"internal/bootstrap":               true,
 	}
 
 	for _, pkg := range firstPartyPackages(t) {

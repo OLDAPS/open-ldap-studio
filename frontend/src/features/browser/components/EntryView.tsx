@@ -39,7 +39,7 @@ export function EntryView() {
   const profileId = useSession((s) => s.activeProfileId);
 
   const dn = document?.dn;
-  const { entry, loading, error, reload } = useEntryViewModel(
+  const { entry, loading, error, reload, ldifLines } = useEntryViewModel(
     document?.profileId ?? profileId,
     dn,
     showOperational,
@@ -95,7 +95,7 @@ export function EntryView() {
           </TabsContent>
 
           <TabsContent value="ldif">
-            <LdifTab dn={dn} attributes={entry?.attributes} />
+            <LdifTab lines={ldifLines} />
           </TabsContent>
 
           <TabsContent value="table">
@@ -125,8 +125,8 @@ export function EntryView() {
  * A value that is not printable text is written base64 with `::`, which is the
  * LDIF rule and also the only honest way to show bytes as text.
  */
-function LdifTab({ dn, attributes }: { dn?: string; attributes?: Attribute[] }) {
-  if (!dn) {
+function LdifTab({ lines }: { lines: string[] }) {
+  if (lines.length === 0) {
     return (
       <div className="pane" style={{ flex: 1 }}>
         <p className="dim" style={{ margin: 0, fontSize: 'var(--text-caption)' }}>
@@ -134,17 +134,6 @@ function LdifTab({ dn, attributes }: { dn?: string; attributes?: Attribute[] }) 
         </p>
       </div>
     );
-  }
-
-  const lines: string[] = [`dn: ${dn}`];
-  for (const attribute of attributes ?? []) {
-    const name = attribute.options?.length
-      ? `${attribute.type};${attribute.options.join(';')}`
-      : attribute.type;
-    for (const raw of attribute.values ?? []) {
-      const value = displayValue(raw);
-      lines.push(value.binary ? `${name}:: ${raw}` : `${name}: ${value.text}`);
-    }
   }
 
   return (

@@ -240,6 +240,37 @@ func TestBodyErrorIsFailedAndKeepsItsExplanation(t *testing.T) {
 	}
 }
 
+func TestCancellationAfterWriteDispatchRemainsIndeterminate(t *testing.T) {
+	rec := &recorder{}
+	r := NewRegistry(rec)
+	started := make(chan struct{})
+	id := r.Start(t.Context(), KindCommit, ModeExecute, "p1", 1, func(ctx context.Context, rep *Reporter) error {
+		close(started)
+		<-ctx.Done()
+		rep.Outcome("cn=uncertain", OutcomeIndeterminate, nil)
+		return ldapx.Indeterminate("modify", ctx.Err())
+	})
+	<-started
+	if err := r.Cancel(id); err != nil {
+		t.Fatal(err)
+	}
+	if !waitFor(t, 2*time.Second, func() bool { job, _ := r.Get(id); return job.State.IsTerminal() }) {
+		t.Fatal("cancelled write did not finish")
+	}
+	job, _ := r.Get(id)
+	if job.State != StateIndeterminate || job.Err == "" {
+		t.Fatalf("uncertain write was reported as ordinary cancellation: %+v", job)
+	}
+	outcomes, err := r.Outcomes(id)
+	if err != nil || len(outcomes) != 1 || outcomes[0].Status != OutcomeIndeterminate {
+		t.Fatalf("uncertain entry outcome was lost: %+v, %v", outcomes, err)
+	}
+	finished, found := rec.last("job:finished")
+	if !found || finished.payload["state"] != StateIndeterminate || finished.payload["error"] == "" {
+		t.Fatalf("job completion event hid uncertainty: %+v", finished)
+	}
+}
+
 func TestCancelUnknownJob(t *testing.T) {
 	r := NewRegistry(&recorder{})
 	if err := r.Cancel("nope"); !errors.Is(err, ErrNoSuchJob) {

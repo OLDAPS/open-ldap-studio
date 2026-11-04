@@ -20,7 +20,7 @@ import { Empty, EmptyDescription, EmptyHeader } from '@/components/ui/empty';
  */
 import { useSession } from '@/app/session';
 import type { PanelTab } from '@/app/session';
-import { bridge } from '@/bridge/client';
+import { useJobsViewModel } from '@/app/useJobsViewModel';
 
 const TABS: { id: PanelTab; label: string }[] = [
   { id: 'progress', label: 'Progress' },
@@ -101,8 +101,7 @@ export function BottomPanel() {
 }
 
 function ProgressList() {
-  const allJobs = useSession((s) => s.jobs);
-  const jobs = Object.values(allJobs);
+  const { jobs, cancelJob } = useJobsViewModel();
 
   if (jobs.length === 0) {
     return <EmptyPanel text="No operations have run in this session." />;
@@ -130,6 +129,7 @@ function ProgressList() {
               <TableCell>
                 <Progress value={percent ?? null} aria-label={`${job.kind} progress`} />
                 <span className="dim mono">{job.message || job.summary || ''}</span>
+                {job.error ? <span className="notice-list__detail mono">{job.error}</span> : null}
               </TableCell>
               <TableCell>
                 <Badge variant="outline" data-job-state={job.state}>
@@ -142,7 +142,7 @@ function ProgressList() {
                     type="button"
                     variant="ghost"
                     size="xs"
-                    onClick={() => void bridge.cancel(job.id)}
+                    onClick={() => void cancelJob(job.id)}
                   >
                     Cancel
                   </Button>

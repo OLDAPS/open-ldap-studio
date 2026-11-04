@@ -1,7 +1,7 @@
 # Critical E2E tests
 
 The default suite runs Chromium → the real Wails websocket dispatcher → the
-Go bridge → a disposable OpenLDAP service. Its 13 cases cover shipped
+Go bridge → a disposable OpenLDAP service. Its 22 cases cover shipped
 connection and directory workflows through visible controls.
 
 ## Test layers
@@ -85,6 +85,10 @@ paths and node IDs are preserved. `--frontend-only` remains an alias for
 | Browse a limited result | The server's size limit is reported as truncation |
 | Inspect entry data | UTF-8, JPEG, multi-value attributes, operational metadata, raw LDIF and document switching show real data |
 | Refresh an entry | A change made by an independent LDAP client becomes visible only after refresh |
+| Recover an idle LDAP, StartTLS or LDAPS session | Refresh reads the independently changed entry, preserves the bind identity and encryption, and displays the reconnect warning without a manual Connect |
+| Keep an idle session alive | The real thirty-second probe re-authenticates a dropped session before the next user read |
+| Reject re-authentication after password rotation | Result 49 is visible, the session disconnects, and another read makes no credential retry or anonymous fallback |
+| Cancel or time out stalled StartTLS and LDAPS negotiation | The job cancels within two seconds or fails within the profile's connection timeout; a subsequent connection succeeds |
 
 The two TLS transports are separate cases. Pagination checks counters and
 samples at page boundaries; Go integration tests cover exhaustive paging.
@@ -95,6 +99,13 @@ IPC integration retains real add/modify/rename/move/delete, preview/discard,
 single-use tokens, stale-write rejection, read-only/production guards, schema
 rejection, bulk job outcomes, and certificate acceptance/revocation. Writes
 are verified independently with LDAP tools inside the test container.
+Reconnect coverage also proves that a commit cannot reuse a preview from the
+previous session, that a fresh confirmation permits the write, and that revoked
+certificate trust is rechecked during automatic recovery.
+Paging coverage also verifies that a continuation cookie is rejected locally
+after another operation has reconnected, and that restarting pagination on the
+new session succeeds. Responses carry a session ID alongside the unchanged
+server cookie; continuations must return both values.
 
 ## Adding coverage
 
@@ -127,6 +138,11 @@ file using a unique `ols-e2e-*` project. LDAP/LDAPS use dynamic loopback ports a
 separate volumes. Startup verifies the full committed seed on three consecutive
 LDAP probes. Workers share only this LDAP service; mutations use unique branches
 with fixture cleanup, including when branch population fails.
+
+Connection-failure tests use a per-test TCP proxy that forwards the real protocol,
+including TLS, unchanged. It can drop existing sockets or pause traffic during
+negotiation. It never synthesizes LDAP responses or restarts the shared directory,
+so these scenarios remain isolated when workers run concurrently.
 
 The runner removes its containers and volumes after success or failure.
 An uncatchable process kill can leave a test project; inspect `docker compose ls`

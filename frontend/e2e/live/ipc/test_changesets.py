@@ -155,3 +155,68 @@ def test_multi_entry_commit_emits_real_job_progress_and_outcomes(
     assert all(outcome["status"] == "succeeded" for outcome in outcomes)
     for dn in (ldap_branch, f"cn=subject,{ldap_branch}"):
         assert "description: Bulk commit" in ldap_service.search(dn, attributes=("description",))
+
+
+@pytest.mark.parametrize("encryption", ["none", "startTLS", "ldaps"])
+def test_a_reconnected_session_requires_a_fresh_preview_before_writing(
+    app: LiveApp, page: Page, ldap_service: LDAPService, ldap_branch: str,
+    ldap_proxy, encryption: str,
+):
+    proxy = ldap_proxy(encryption)
+    profile = app.connect(encryption=encryption, verify=False, port=proxy.port)
+    dn = f"cn=subject,{ldap_branch}"
+    change = modification(profile, dn, "Confirmed on the replacement session")
+    preview = app.rpc("Preview", change, False)
+    token = preview["token"]["token"]
+    proxy.drop()
+
+    # Commit's version check itself needs a read. Let that read recover the
+    # session, then prove the old confirmation cannot authorize its write.
+    with pytest.raises(Error, match="reconnected; preview and confirm"):
+        app.rpc("Commit", token)
+    assert "description: Original LDAP value" in ldap_service.search(dn, attributes=("description",))
+    expect(page.get_by_role("status")).to_contain_text("reconnected")
+    state = app.rpc("ConnectionState", profile["id"])
+    assert state["state"] == "connected"
+    assert state["writesRequireConfirmation"] is True
+    assert state["encrypted"] is (encryption != "none")
+    assert proxy.connections == 2
+    with pytest.raises(Error, match="already been committed"):
+        app.rpc("Commit", token)
+
+    fresh = app.rpc("Preview", change, False)
+    assert b64decode(fresh["changeSet"]["ops"][0]["before"][0]) == b"Original LDAP value"
+    assert "description: Original LDAP value" in ldap_service.search(dn, attributes=("description",))
+    assert app.rpc("Commit", fresh["token"]["token"])["code"] == 0
+    assert "description: Confirmed on the replacement session" in ldap_service.search(
+        dn, attributes=("description",),
+    )
+    assert proxy.connections == 2
+
+
+def test_a_paging_cookie_is_rejected_after_another_read_recovers_the_session(
+    app: LiveApp, ldap_proxy,
+):
+    proxy = ldap_proxy()
+    profile = app.connect(port=proxy.port)
+    dn = "ou=people,dc=example,dc=org"
+    first = app.rpc("ListChildren", profile["id"], dn, {"size": 100})
+    assert len(first["entries"]) == 100
+    assert first["cookie"]
+    assert first["sessionId"]
+    proxy.drop()
+    assert app.rpc("RootDSE", profile["id"])["result"]["code"] == 0
+    with pytest.raises(Error, match="paging session changed"):
+        app.rpc("ListChildren", profile["id"], dn, {
+            "size": 100, "cookie": first["cookie"], "sessionId": first["sessionId"],
+        })
+    fresh = app.rpc("ListChildren", profile["id"], dn, {"size": 100})
+    assert fresh["sessionId"] != first["sessionId"]
+    continued = app.rpc("ListChildren", profile["id"], dn, {
+        "size": 100, "cookie": fresh["cookie"], "sessionId": fresh["sessionId"],
+    })
+    assert len(continued["entries"]) == 100
+    assert not {entry["dn"] for entry in fresh["entries"]} & {
+        entry["dn"] for entry in continued["entries"]
+    }
+    assert proxy.connections == 2

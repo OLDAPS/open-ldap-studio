@@ -257,6 +257,7 @@ export namespace ldapx {
 	export interface Page {
 	    entries: Entry[];
 	    cookie?: string;
+	    sessionId: string;
 	    loadedCount: number;
 	    serverLimit: number;
 	    truncatedByServer: boolean;
@@ -265,6 +266,7 @@ export namespace ldapx {
 	export interface PageRequest {
 	    size: number;
 	    cookie?: string;
+	    sessionId?: string;
 	    includeOperational: boolean;
 	}
 	export interface ReadOptions {

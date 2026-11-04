@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/rand"
 	"crypto/sha256"
+	"encoding/binary"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -97,9 +98,11 @@ type Pipeline struct {
 }
 
 type issuedToken struct {
-	token     Token
-	changeSet ChangeSet
-	used      bool
+	token      Token
+	changeSet  ChangeSet
+	used       bool
+	sessionID  string
+	production bool
 }
 
 // NewPipeline builds the pipeline. There is no second constructor and no way
@@ -119,9 +122,12 @@ func NewPipeline(conns DirectorySource, profileSource ProfileSource, guard Guard
 // because each needs a different affordance: re-preview, re-confirm, or
 // nothing at all.
 var (
-	ErrNoToken      = errors.New("changeset: no such preview token; every commit requires a preview")
-	ErrTokenUsed    = errors.New("changeset: this preview has already been committed")
-	ErrTokenExpired = errors.New("changeset: this preview has expired; preview the change again")
+	ErrNoToken                   = errors.New("changeset: no such preview token; every commit requires a preview")
+	ErrTokenUsed                 = errors.New("changeset: this preview has already been committed")
+	ErrTokenExpired              = errors.New("changeset: this preview has expired; preview the change again")
+	ErrSessionChanged            = errors.New("changeset: the connection was reconnected; preview and confirm the change again")
+	ErrPolicyChanged             = errors.New("changeset: the connection's production policy changed; preview and confirm the change again")
+	ErrSubtreePreviewUnavailable = errors.New("changeset: subtree delete cannot be previewed until the affected entries can be counted and guarded")
 )
 
 // ErrStale is returned when an entry changed between preview and commit. The
@@ -142,6 +148,11 @@ func (e *ErrStale) Error() string {
 // profile without its extra confirmation. That refusal happens here rather
 // than in the UI so that no code path can route around it (contract C13).
 func (p *Pipeline) Preview(ctx context.Context, in Input, confirmedProduction bool) (Preview, error) {
+	// A recursive delete cannot be confirmed from the supplied root DN alone.
+	// Until enumeration and version checks cover the full subtree, issue no token.
+	if in.Kind == KindSubtreeDelete {
+		return Preview{}, ErrSubtreePreviewUnavailable
+	}
 	profile, err := p.profiles.Profile(in.ProfileID)
 	if err != nil {
 		return Preview{}, err
@@ -195,7 +206,10 @@ func (p *Pipeline) Preview(ctx context.Context, in Input, confirmedProduction bo
 	}
 
 	p.mu.Lock()
-	p.issued[token.Token] = &issuedToken{token: token, changeSet: cs}
+	p.issued[token.Token] = &issuedToken{
+		token: token, changeSet: cs, sessionID: directorySession(dir),
+		production: profile.IsProduction(),
+	}
 	p.mu.Unlock()
 
 	return Preview{
@@ -207,6 +221,13 @@ func (p *Pipeline) Preview(ctx context.Context, in Input, confirmedProduction bo
 		Token:          token,
 		Reversible:     len(cs.BeforeState) > 0 && cs.Kind != KindSubtreeDelete,
 	}, nil
+}
+
+func directorySession(dir Directory) string {
+	if session, ok := dir.(interface{ SessionID() string }); ok {
+		return session.SessionID()
+	}
+	return ""
 }
 
 // versionAbsent is the version of a DN that does not exist yet.
@@ -290,40 +311,45 @@ func (p *Pipeline) take(token string) (*issuedToken, error) {
 
 // EntryVersion computes the version used as the concurrency guard.
 //
-// It prefers the server's own change markers where they exist, and falls back
-// to a digest of the entry. The fallback matters: a server that publishes
-// neither entryCSN nor modifyTimestamp would otherwise have no guard at all.
+// It includes a content digest even when the server publishes a change marker:
+// an unchanged UUID or a coarse timestamp must not hide changed values.
 func EntryVersion(entry ldapx.Entry) string {
-	for _, name := range []string{"entryCSN", "modifyTimestamp", "entryUUID"} {
+	marker := ""
+	for _, name := range []string{"entryCSN", "modifyTimestamp"} {
 		if attr, ok := entry.Attribute(name); ok && len(attr.Values) > 0 {
-			return name + "=" + string(attr.Values[0])
+			marker = name + "=" + hex.EncodeToString(attr.Values[0]) + ":"
+			break
 		}
 	}
 
 	digest := sha256.New()
-	digest.Write([]byte(entry.DN))
-
-	descriptions := make([]string, 0, len(entry.Attributes))
-	index := make(map[string]ldapx.Attribute, len(entry.Attributes))
-	for _, a := range entry.Attributes {
-		descriptions = append(descriptions, a.Description())
-		index[a.Description()] = a
+	writeLength := func(n int) {
+		var encoded [binary.MaxVarintLen64]byte
+		used := binary.PutVarint(encoded[:], int64(n))
+		_, _ = digest.Write(encoded[:used])
 	}
-	sort.Strings(descriptions)
-
-	for _, d := range descriptions {
-		digest.Write([]byte{0})
-		digest.Write([]byte(d))
-		values := index[d].Values
+	writeBytes := func(value []byte) {
+		writeLength(len(value))
+		_, _ = digest.Write(value)
+	}
+	writeBytes([]byte(entry.DN))
+	attributes := append([]ldapx.Attribute(nil), entry.Attributes...)
+	sort.Slice(attributes, func(i, j int) bool {
+		return attributes[i].Description() < attributes[j].Description()
+	})
+	writeLength(len(attributes))
+	for _, attr := range attributes {
+		writeBytes([]byte(attr.Description()))
+		values := attr.Values
 		sorted := make([][]byte, len(values))
 		copy(sorted, values)
 		sort.Slice(sorted, func(i, j int) bool { return string(sorted[i]) < string(sorted[j]) })
+		writeLength(len(sorted))
 		for _, v := range sorted {
-			digest.Write([]byte{1})
-			digest.Write(v)
+			writeBytes(v)
 		}
 	}
-	return "sha256=" + hex.EncodeToString(digest.Sum(nil))
+	return marker + "sha256=" + hex.EncodeToString(digest.Sum(nil))
 }
 
 // fillDiff populates each operation's Before from the captured state, so the

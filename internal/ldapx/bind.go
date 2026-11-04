@@ -44,7 +44,33 @@ func Bind(ctx context.Context, c *Conn, req BindRequest) (Result, error) {
 	if c == nil {
 		return Result{}, TransportError("bind", errors.New("no connection"))
 	}
+	ctx, cancel := c.operationContext(ctx)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return Result{}, contextError(ctx, "bind", err)
+	}
+	c.mu.RLock()
+	raw, closed := c.rawConn, c.closed
+	c.mu.RUnlock()
+	if closed || raw == nil {
+		return Result{}, TransportError("bind", errors.New("the connection is closed"))
+	}
+	stop := closeOnCancel(ctx, raw)
+	defer stop()
+	deadline, _ := ctx.Deadline()
+	if err := raw.SetDeadline(deadline); err != nil {
+		return Result{}, TransportError("bind", err)
+	}
+	result, err := bind(ctx, c, req)
+	stop()
+	_ = raw.SetDeadline(time.Time{})
+	if ctx.Err() != nil && ResultOf(err) == nil {
+		return result, contextError(ctx, "bind", ctx.Err())
+	}
+	return result, err
+}
 
+func bind(ctx context.Context, c *Conn, req BindRequest) (Result, error) {
 	timeout := time.Duration(c.profile.Timeouts.ReadMS) * time.Millisecond
 	if timeout <= 0 {
 		timeout = 30 * time.Second

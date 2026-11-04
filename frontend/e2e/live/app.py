@@ -75,10 +75,11 @@ class LiveApp:
         return self.rpc("GetProfile", profiles[0]["id"])
 
     def save(self, *, encryption: str = "none", verify: bool = True,
+             port: int | None = None,
              dn: str = ADMIN_DN, password: str = ADMIN_PASSWORD, anonymous: bool = False,
              page_size: int = 100, size_limit: int = 0, read_only: bool = False,
              production: bool = False) -> dict:
-        self.network(encryption, verify)
+        self.network(encryption, verify, port)
         self.authentication(dn, password, anonymous)
         self.page.get_by_role("button", name="3 · Browser options", exact=True).click()
         self.page.get_by_label("Base DN", exact=True).fill(BASE_DN)

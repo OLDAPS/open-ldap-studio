@@ -14,82 +14,38 @@ import { Button } from '@/components/ui/button';
  * whether a server is open — they are all reading the same `conn:state` events
  * the Go side emits.
  */
-import { useCallback, useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useConnectionsViewModel } from '../useConnectionsViewModel';
+import type { ConnectionsViewModel } from '../useConnectionsViewModel';
 
 import { ConnectionWizard } from './ConnectionWizard';
-import { bridge, isEmbedded } from '@/bridge/client';
 import type { ConnState, ProfileSummary } from '@/bridge/types';
 import { Workspace } from '@/shell/Workspace';
-import { useSession } from '@/app/session';
 
 export function ConnectionsView() {
-  const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
-  const [selected, setSelected] = useState<string | undefined>();
+  const model = useConnectionsViewModel();
+  return <ConnectionsContent model={model} />;
+}
+
+export function ConnectionsContent({ model }: { model: ConnectionsViewModel }) {
   const [wizardOpen, setWizardOpen] = useState(false);
-  const [busy, setBusy] = useState<string | undefined>();
-  const [error, setError] = useState<string | undefined>();
-
-  const connections = useSession((s) => s.connections);
-  const setActiveProfile = useSession((s) => s.setActiveProfile);
-  const setPerspective = useSession((s) => s.setPerspective);
-
-  const refresh = useCallback(async () => {
-    if (!isEmbedded()) return;
-    try {
-      setProfiles(await bridge.listProfiles());
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  }, []);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  const stateOf = (id: string): ConnState['state'] => connections[id]?.state ?? 'disconnected';
-
-  const connect = async (id: string) => {
-    setError(undefined);
-    setBusy(id);
-    setActiveProfile(id);
-    try {
-      // Returns a job id; the connected state arrives as a conn:state event,
-      // which the shell already routes into the store.
-      await bridge.connect(id);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(undefined);
-    }
-  };
-
-  const disconnect = async (id: string) => {
-    setError(undefined);
-    setBusy(id);
-    try {
-      await bridge.disconnect(id);
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    } finally {
-      setBusy(undefined);
-    }
-  };
-
-  const remove = async (id: string, name: string) => {
-    // A connection is cheap to recreate but its stored secret is not
-    // recoverable, so the confirmation names both.
-    if (!window.confirm(`Delete the connection "${name}" and forget its stored secret?`)) return;
-    setError(undefined);
-    try {
-      await bridge.deleteProfile(id);
-      if (selected === id) setSelected(undefined);
-      await refresh();
-    } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
-    }
-  };
-
-  const active = profiles.find((p) => p.id === selected);
+  const {
+    profiles,
+    selected,
+    busy,
+    error,
+    active,
+    connections,
+    available,
+    refresh,
+    select,
+    connect,
+    disconnect,
+    remove,
+    saved,
+    stateOf,
+    browse,
+  } = model;
 
   return (
     <div className="view">
@@ -125,7 +81,7 @@ export function ConnectionsView() {
 
           {profiles.length === 0 ? (
             <p className="sidebar__note">
-              {isEmbedded() ? 'no connections yet — use + to add one' : 'no backend'}
+              {available ? 'no connections yet — use + to add one' : 'no backend'}
             </p>
           ) : (
             profiles.map((profile) => {
@@ -139,8 +95,7 @@ export function ConnectionsView() {
                   className="tree-row"
                   data-selected={selected === profile.id || undefined}
                   onClick={() => {
-                    setSelected(profile.id);
-                    setActiveProfile(profile.id);
+                    select(profile.id);
                   }}
                   onDoubleClick={() => void connect(profile.id)}
                   title={`${profile.host}:${profile.port}`}
@@ -161,9 +116,7 @@ export function ConnectionsView() {
           <ConnectionWizard
             onClose={() => setWizardOpen(false)}
             onSaved={(id) => {
-              void refresh();
-              setSelected(id);
-              setActiveProfile(id);
+              saved(id);
             }}
           />
         ) : (
@@ -176,8 +129,17 @@ export function ConnectionsView() {
             onNew={() => setWizardOpen(true)}
             onConnect={() => active && void connect(active.id)}
             onDisconnect={() => active && void disconnect(active.id)}
-            onDelete={() => active && void remove(active.id, active.name)}
-            onBrowse={() => setPerspective('browser')}
+            onDelete={() => {
+              if (
+                active &&
+                window.confirm(
+                  `Delete the connection "${active.name}" and forget its stored secret?`,
+                )
+              ) {
+                void remove(active.id);
+              }
+            }}
+            onBrowse={browse}
           />
         )}
       </Workspace>
